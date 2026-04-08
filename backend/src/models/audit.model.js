@@ -3,7 +3,7 @@ const sequelize = require('../config/sequelize.js');
 
 const Organization = require('./organization.model.js');
 const User = require('./user.model.js');
-
+const FrameworkVersion = require('./framework_version.model.js');
 class Audit extends Model {}
 
 Audit.init(
@@ -34,6 +34,16 @@ Audit.init(
     frequency: {
       type: DataTypes.ENUM('Daily', 'Weekly', 'Monthly', 'Quarterly', 'Annual'),
       allowNull: false,
+    },
+    framework_version_id: {
+      type: DataTypes.SMALLINT.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: FrameworkVersion,
+        key: 'id',
+      },
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE',
     },
     state: {
       type: DataTypes.ENUM('Not started', 'Pending', 'Evaluated', 'Closed', 'Not evaluated'),
