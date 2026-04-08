@@ -1,0 +1,21 @@
+name;dimension;formula;goal;measure;frequency
+Percentage of increase in revenue;Economic;((Sales value of the current period - Sales value of the previous period) / Sales value of the previous period) *100;Maximize;%;Annual
+Percentage of increase in exports;Economic;((Value of exports of the current period - Value of exports of the previous period) / Value of exports of the previous period) * 100;Maximize;%;Annual
+Change in the budget;Economic;(Actual budget/Plan budget * 100) - 100;Minimize;%;Annual
+Training index;Social;(Number of training actions / Total number of employees);Maximize;%;Annual
+Percentage of specialists leave;Social;(Total departures / Average number of workers in the period) * 100;Minimize;%;Annual
+Percentage decrease in the number of cases of indiscipline;Social;((Cases of indiscipline from the previous period - Cases of indiscipline from the current period) / Cases of indiscipline from the previous period) * 100;Minimize;%;Annual
+Corruption cases;Social;Number of corruption cases;Minimize;U;Annual
+Fraud cases;Social;Number of fraud cases;Minimize;U;Annual
+Saving electrical energy;Environment;((Energy expenditure of the previous year - Energy expenditure of the current period) / Energy expenditure of the previous year) * 100;Maximize;%;Annual
+Percentage of server virtualisation;Environment;(1 - (Number of physical servers / Numbers of virtual servers)) * 100;Maximize;%;Annual
+Percentage of virtual meetings and conferences;Environment;(Number of virtual meetings / Numbers of working days) * 100;Maximize;%;Annual
+Percentage of certified and accredited processes;Institutional;(Total number of certified and accredited processes / Total number of processes) * 100;Maximize;%;Annual
+Effectiveness in fulfilling the mission;Institutional;(Number of students with all subjects passed + Number of students with one failed subject + Number of students with two failed subjects, but from different semesters) / Total enrolment;Maximize;%;Annual
+Percentage compliance with project milestones;Institutional;(Achievement of actual milestones / Achievement of planned milestones) * 100;Maximize;%;Annual
+Percentage of client retention;Institutional;(Number of customers retained in the period / Total number of customers in the period) * 100;Maximize;%;Annual
+PhD rates;Academic;(Number of PhDs / Number of full, assistant and associate professors) * 100;Maximize;%;Annual
+Master's rates;Academic;(Number of master's degrees / Number of teachers and specialists) * 100;Maximize;%;Annual
+Index of Group I and II publications by teacher;Academic;(Number of Group I and II publications / Total number of teachers) * 100;Maximize;%;Annual
+Percentage increase in projects;Technological Innovation;(Projects of the current period - Projects of the previous period) / Projects of the previous period *100;Maximize;%;Annual
+Percentage of projects successfully closed;Technological Innovation;(Number of successfully closed projects / Total number of projects for the period) *100 ;Maximize;%;Annual
