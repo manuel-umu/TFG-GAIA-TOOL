@@ -2,10 +2,11 @@ const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/sequelize.js');
 
 const Framework = require('./framework.model.js');
+const DR = require('./disclosure_requirement.model.js');
 
-class FrameworkVersion extends Model {}
+class DataPoint extends Model {}
 
-FrameworkVersion.init(  //TODO: MIRAR SI VERSIONCODE SE PUEDE COMO PRIMARY KEY
+DataPoint.init(
   {
     id: {
       type: DataTypes.SMALLINT.UNSIGNED,
@@ -13,48 +14,53 @@ FrameworkVersion.init(  //TODO: MIRAR SI VERSIONCODE SE PUEDE COMO PRIMARY KEY
       primaryKey: true,
       allowNull: false,
     },
-    framework_id: {   
+    disclosure_requirement_id: {
       type: DataTypes.SMALLINT.UNSIGNED,
-      allowNull: false,
+     allowNull: false,
       references: {
-        model: Framework,
+        model: DR,
         key: 'id',
       },
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     },
-    version_code: {
+    official_id: {   
+      type: DataTypes.STRING(30),
+      allowNull: false,
+      
+    },
+    name: {
+      type: DataTypes.STRING(10),
+      allowNull: false,
+    },
+    paragraph_ref: {  // Nombre de la version, ejemplo: ESRS Set 1 - enero 2025
+      type: DataTypes.STRING(30),
+      allowNull: true,
+    },
+    related_ar: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    data_type: {  
       type: DataTypes.STRING(30),
       allowNull: false,
     },
-    version_label: {  // Nombre de la version, ejemplo: ESRS Set 1 - enero 2025
-      type: DataTypes.STRING(100),
-      allowNull: false,
-    },
-    effective_date: {
-      type: DataTypes.DATEONLY,
-      allowNull: true,
-    },
-    source_file: {  
-      type: DataTypes.STRING(200),
-      allowNull: true,
-    },
-    is_active: {
+    is_voluntary: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: true,
+      defaultValue: false,
     },
-    created_at: {
-      type: DataTypes.DATEONLY,
+    is_conditional: {
+      type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: DataTypes.NOW,
+      defaultValue: false,
     },
   
   },
   {
     sequelize,
-    modelName: 'FrameworkVersion',
-    tableName: 'framework_versions',
+    modelName: 'DataPoint',
+    tableName: 'datapoints',
     timestamps: false,
     indexes: [
       {
@@ -65,4 +71,4 @@ FrameworkVersion.init(  //TODO: MIRAR SI VERSIONCODE SE PUEDE COMO PRIMARY KEY
   }
 );
 
-module.exports = FrameworkVersion;
+module.exports = DataPoint;

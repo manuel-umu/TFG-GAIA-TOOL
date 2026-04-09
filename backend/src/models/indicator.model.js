@@ -1,6 +1,6 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/sequelize.js');
-
+const DataPoint = require('./datapoint.model.js');
 class Indicator extends Model { }
 
 Indicator.init(
@@ -10,6 +10,16 @@ Indicator.init(
       autoIncrement: true,
       primaryKey: true,
       allowNull: false,
+    },
+    data_point_id: {
+      type: DataTypes.SMALLINT.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: DataPoint,
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE',
     },
     name: {
       type: DataTypes.STRING(200),

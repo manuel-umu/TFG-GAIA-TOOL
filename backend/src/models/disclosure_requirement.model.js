@@ -2,10 +2,11 @@ const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/sequelize.js');
 
 const Framework = require('./framework.model.js');
+const Standard = require('./standard.model.js');
 
-class Standard extends Model {}
+class DisclosureRequirement extends Model {}
 
-Standard.init(
+DisclosureRequirement.init(
   {
     id: {
       type: DataTypes.SMALLINT.UNSIGNED,
@@ -13,32 +14,23 @@ Standard.init(
       primaryKey: true,
       allowNull: false,
     },
-    framework_version_id: {   // Referencia a la version a la q pertenece este estandar
+    standard_id: {
       type: DataTypes.SMALLINT.UNSIGNED,
       allowNull: false,
       references: {
-        model: Framework,
+        model: Standard,
         key: 'id',
       },
       onDelete: 'CASCADE',
       onUpdate: 'CASCADE',
     },
-    code: { // E1 (De ESRS E1, solo la parte de E1 porque ESRS no es el nombre del estandar)
+    code: {   
       type: DataTypes.STRING(30),
       allowNull: false,
     },
-    name: {  // Ejemplo: Cambio climatico 
+    name: {
       type: DataTypes.STRING(100),
       allowNull: false,
-    },
-    category: {//Environmental, Social...
-      type: DataTypes.STRING(100),
-      allowNull: true,
-    },
-    is_mandatory: {   // Estandar obligatoria o dependiendo de materialidad (tamaño de empresa y sector)
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
     },
     sort_order: {
       type: DataTypes.SMALLINT,
@@ -48,10 +40,16 @@ Standard.init(
   },
   {
     sequelize,
-    modelName: 'Standard',
-    tableName: 'standards',
+    modelName: 'DisclosureRequirement',
+    tableName: 'disclosure_requirements',
     timestamps: false,
+    indexes: [
+      {
+        unique: true,
+        fields: ['standard_id', 'code']
+      }
+    ]
   }
 );
 
-module.exports = Standard;
+module.exports = DisclosureRequirement;
