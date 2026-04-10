@@ -9,13 +9,13 @@ class DataPoint extends Model {}
 DataPoint.init(
   {
     id: {
-      type: DataTypes.SMALLINT.UNSIGNED,
+      type: DataTypes.INTEGER.UNSIGNED,
       autoIncrement: true,
       primaryKey: true,
       allowNull: false,
     },
     disclosure_requirement_id: {
-      type: DataTypes.SMALLINT.UNSIGNED,
+      type: DataTypes.INTEGER.UNSIGNED,
      allowNull: false,
       references: {
         model: DR,
@@ -27,6 +27,7 @@ DataPoint.init(
     official_id: {   
       type: DataTypes.STRING(30),
       allowNull: false,
+      unique: true,
       
     },
     name: {
@@ -55,6 +56,21 @@ DataPoint.init(
       allowNull: false,
       defaultValue: false,
     },
+    phased_in_750: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    phased_in_appendix_c: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    cross_reference: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+    },
+  
   
   },
   {
@@ -62,12 +78,6 @@ DataPoint.init(
     modelName: 'DataPoint',
     tableName: 'datapoints',
     timestamps: false,
-    indexes: [
-      {
-        unique: true,
-        fields: ['framework_id', 'version_code']
-      }
-    ]
   }
 );
 

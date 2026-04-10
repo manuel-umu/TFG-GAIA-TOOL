@@ -1,7 +1,7 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/sequelize.js');
 const Audit = require('./audit.model.js');
-const Datapoint = require('./datapoint.model.js');
+const Datapoint = require('./data_point.model.js');
 const User = require('./user.model.js');
 
 class AuditDatapoints extends Model { }
@@ -19,8 +19,8 @@ AuditDatapoints.init(
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
         },
-        datapoint_id: {
-            type: DataTypes.SMALLINT.UNSIGNED,
+        data_point_id: {
+            type: DataTypes.INTEGER.UNSIGNED,
             allowNull: false,
             primaryKey: true,
             references: {
@@ -31,12 +31,12 @@ AuditDatapoints.init(
             onDelete: 'RESTRICT',
         },
         value_text: {
-            type: DataTypes.STRING(255),
-            allowNull: false,
+            type: DataTypes.TEXT,
+            allowNull: true,
         },
-        value_num: {
+        value_numeric: {
             type: DataTypes.DECIMAL(15, 4),
-            allowNull: false,
+            allowNull: true,
         },
         is_applicable: {
             type: DataTypes.BOOLEAN,
@@ -48,9 +48,9 @@ AuditDatapoints.init(
             allowNull: true,
         },
         status: {
-            type: DataTypes.ENUM('Pending', 'Draft', 'Completed', 'Validated'),
+            type: DataTypes.ENUM('pending', 'draft', 'completed', 'validated'),
             allowNull: false,
-            defaultValue: 'Pending',
+            defaultValue: 'pending',
         },
         updated_at: {
             type: DataTypes.DATE,
@@ -77,4 +77,4 @@ AuditDatapoints.init(
     },
 );
 
-module.exports = ProcessIndicatorFactor;
+module.exports = AuditDatapoints;

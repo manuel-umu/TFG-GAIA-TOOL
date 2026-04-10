@@ -45,7 +45,7 @@ FrameworkVersion.init(  //TODO: MIRAR SI VERSIONCODE SE PUEDE COMO PRIMARY KEY
       defaultValue: true,
     },
     created_at: {
-      type: DataTypes.DATEONLY,
+      type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },

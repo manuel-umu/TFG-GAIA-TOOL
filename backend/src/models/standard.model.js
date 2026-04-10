@@ -1,7 +1,7 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/sequelize.js');
 
-const Framework = require('./framework.model.js');
+const FrameworkVer = require('./framework_version.model.js');
 
 class Standard extends Model {}
 
@@ -17,7 +17,7 @@ Standard.init(
       type: DataTypes.SMALLINT.UNSIGNED,
       allowNull: false,
       references: {
-        model: Framework,
+        model: FrameworkVer,
         key: 'id',
       },
       onDelete: 'CASCADE',
@@ -51,6 +51,12 @@ Standard.init(
     modelName: 'Standard',
     tableName: 'standards',
     timestamps: false,
+    indexes: [
+      {
+        unique: true,
+        fields: ['framework_version_id', 'code']
+      }
+    ]
   }
 );
 

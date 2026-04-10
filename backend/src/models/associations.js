@@ -12,9 +12,10 @@ const CalculatedElementMatrixSaaty = require('./calculated_element_matrix_saaty.
 const Framework = require('./framework.model.js');
 const FrameworkVersion = require('./framework_version.model.js');
 const Standard = require('./standard.model.js');
-const DataPoint = require('./datapoint.model.js');
+const DataPoint = require('./data_point.model.js');
 const DisclosureRequirement = require('./disclosure_requirement.model.js');
-const AuditDataPoint = require('./audit_datapoints.model.js');
+const AuditDataPoint = require('./audit_data_points.model.js');
+const AuditStandard = require('./audit_standard.model.js');
 
 
 Process.belongsTo(User, { foreignKey: 'responsible' });
@@ -32,8 +33,8 @@ Organization.hasMany(Audit, { as: 'audits', foreignKey: 'organization' });
 Factor.belongsTo(Organization, { foreignKey: 'organization' });
 Organization.hasMany(Factor, { as: 'factors', foreignKey: 'organization' });
 
-Process.belongsToMany(Indicator, { through: ProcessIndicatorFactor, foreignKey: 'process', otherKey: 'indicator', as: 'indicators'});
-Indicator.belongsToMany(Process, { through: ProcessIndicatorFactor, foreignKey: 'indicator', otherKey: 'process', as: 'processes'});
+Process.belongsToMany(Indicator, { through: ProcessIndicatorFactor, foreignKey: 'process', otherKey: 'indicator', as: 'indicators' });
+Indicator.belongsToMany(Process, { through: ProcessIndicatorFactor, foreignKey: 'indicator', otherKey: 'process', as: 'processes' });
 
 Indicator.belongsToMany(Factor, { through: ProcessIndicatorFactor, foreignKey: 'indicator', otherKey: 'factor', as: 'factors' });
 Factor.belongsToMany(Indicator, { through: ProcessIndicatorFactor, foreignKey: 'factor', otherKey: 'indicator', as: 'indicators' });
@@ -78,16 +79,29 @@ DisclosureRequirement.hasMany(DataPoint, { as: 'dataPoints', foreignKey: 'disclo
 DataPoint.belongsTo(DisclosureRequirement, { foreignKey: 'disclosure_requirement_id' });
 
 // FrameworkVer con auditoria e indicador con datapoint
-Audit.belongsTo(FrameworkVersion, { foreignKey: 'framework_version', as: 'frameworkVersion' });
-FrameworkVersion.hasMany(Audit, { foreignKey: 'framework_version', as: 'audits' });
+Audit.belongsTo(FrameworkVersion, { foreignKey: 'framework_version_id', as: 'frameworkVersion' });
+FrameworkVersion.hasMany(Audit, { foreignKey: 'framework_version_id', as: 'audits' });
 
-Indicator.belongsTo(DataPoint, { foreignKey: 'datapoint_id', as: 'dataPoint' });
-DataPoint.hasMany(Indicator, { foreignKey: 'datapoint_id', as: 'indicators' });
+Indicator.belongsTo(DataPoint, { foreignKey: 'data_point_id', as: 'dataPoint' });
+DataPoint.hasMany(Indicator, { foreignKey: 'data_point_id', as: 'indicators' });
 
 // Tabla pivote de auditoria y datapoint
 AuditDataPoint.belongsTo(Audit, { foreignKey: 'audit_id' });
-AuditDataPoint.belongsTo(DataPoint, { foreignKey: 'datapoint_id' });
+AuditDataPoint.belongsTo(DataPoint, { foreignKey: 'data_point_id' });
 AuditDataPoint.belongsTo(User, { foreignKey: 'updated_by', as: 'updatedByUser' });
-    
+
 Audit.hasMany(AuditDataPoint, { foreignKey: 'audit_id', as: 'dataPointValues' });
-DataPoint.hasMany(AuditDataPoint, { foreignKey: 'datapoint_id', as: 'auditValues' });
+DataPoint.hasMany(AuditDataPoint, { foreignKey: 'data_point_id', as: 'auditValues' });
+// Imports (arriba del archivo)
+const AuditStandard = require('./audit_standard.model.js');
+
+// Asociaciones (al final)
+Audit.belongsToMany(Standard, { through: AuditStandard, foreignKey: 'audit_id', otherKey: 'standard_id', as: 'materialStandards' });
+Standard.belongsToMany(Audit, { through: AuditStandard, foreignKey: 'standard_id', otherKey: 'audit_id', as: 'audits' });
+
+AuditStandard.belongsTo(Audit, { foreignKey: 'audit_id' });
+AuditStandard.belongsTo(Standard, { foreignKey: 'standard_id' });
+AuditStandard.belongsTo(User, { foreignKey: 'assessed_by', as: 'assessor' });
+
+Audit.hasMany(AuditStandard, { foreignKey: 'audit_id', as: 'standardAssessments' });
+Standard.hasMany(AuditStandard, { foreignKey: 'standard_id', as: 'auditAssessments' });

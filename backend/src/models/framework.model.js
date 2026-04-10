@@ -17,15 +17,15 @@ Framework.init(
       unique: true,
     },
     name: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.STRING(200),
       allowNull: false,
       unique: false,
     },
     description: {
-      type: DataTypes.STRING(200),
+      type: DataTypes.TEXT,
       allowNull: true,
     },
-    entity: {
+    issuing_body: { // Entidad que emite el marco normativo
       type: DataTypes.STRING(100),
       allowNull: false,
     },

@@ -1,7 +1,5 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/sequelize.js');
-
-const Framework = require('./framework.model.js');
 const Standard = require('./standard.model.js');
 
 class DisclosureRequirement extends Model {}
@@ -9,7 +7,7 @@ class DisclosureRequirement extends Model {}
 DisclosureRequirement.init(
   {
     id: {
-      type: DataTypes.SMALLINT.UNSIGNED,
+      type: DataTypes.INTEGER.UNSIGNED,
       autoIncrement: true,
       primaryKey: true,
       allowNull: false,

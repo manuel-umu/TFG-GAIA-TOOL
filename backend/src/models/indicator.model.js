@@ -1,6 +1,6 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/sequelize.js');
-const DataPoint = require('./datapoint.model.js');
+const DataPoint = require('./data_point.model.js');
 class Indicator extends Model { }
 
 Indicator.init(
@@ -12,7 +12,7 @@ Indicator.init(
       allowNull: false,
     },
     data_point_id: {
-      type: DataTypes.SMALLINT.UNSIGNED,
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
       references: {
         model: DataPoint,
