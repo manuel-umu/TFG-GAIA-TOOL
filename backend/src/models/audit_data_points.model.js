@@ -65,7 +65,7 @@ AuditDatapoints.init(
                 key: 'id'
             },
             onUpdate: 'CASCADE',
-            onDelete: 'RESTRICT',
+            onDelete: 'SET NULL',
         },
     },
     {
@@ -73,7 +73,6 @@ AuditDatapoints.init(
         modelName: 'AuditDatapoint',
         tableName: 'audit_datapoints',
         timestamps: false,
-        underscored: true,
     },
 );
 

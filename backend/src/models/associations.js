@@ -92,10 +92,7 @@ AuditDataPoint.belongsTo(User, { foreignKey: 'updated_by', as: 'updatedByUser' }
 
 Audit.hasMany(AuditDataPoint, { foreignKey: 'audit_id', as: 'dataPointValues' });
 DataPoint.hasMany(AuditDataPoint, { foreignKey: 'data_point_id', as: 'auditValues' });
-// Imports (arriba del archivo)
-const AuditStandard = require('./audit_standard.model.js');
 
-// Asociaciones (al final)
 Audit.belongsToMany(Standard, { through: AuditStandard, foreignKey: 'audit_id', otherKey: 'standard_id', as: 'materialStandards' });
 Standard.belongsToMany(Audit, { through: AuditStandard, foreignKey: 'standard_id', otherKey: 'audit_id', as: 'audits' });
 

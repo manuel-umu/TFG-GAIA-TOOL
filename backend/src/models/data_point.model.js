@@ -1,7 +1,6 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/sequelize.js');
 
-const Framework = require('./framework.model.js');
 const DR = require('./disclosure_requirement.model.js');
 
 class DataPoint extends Model {}
@@ -31,7 +30,7 @@ DataPoint.init(
       
     },
     name: {
-      type: DataTypes.STRING(10),
+      type: DataTypes.STRING(500),
       allowNull: false,
     },
     paragraph_ref: {  // Nombre de la version, ejemplo: ESRS Set 1 - enero 2025
