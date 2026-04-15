@@ -43,7 +43,7 @@ DataPoint.init(
     },
     data_type: {  
       type: DataTypes.STRING(30),
-      allowNull: false,
+      allowNull: true,
     },
     is_voluntary: {
       type: DataTypes.BOOLEAN,
@@ -69,8 +69,12 @@ DataPoint.init(
       type: DataTypes.STRING(200),
       allowNull: true,
     },
-  
-  
+    link: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+
+
   },
   {
     sequelize,

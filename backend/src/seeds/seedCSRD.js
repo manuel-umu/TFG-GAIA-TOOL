@@ -51,6 +51,7 @@ async function seed() {
   // Crear tablas si no existen
   await sequelize.sync();
 
+  //
   const transaction = await sequelize.transaction();
 
   try {
@@ -78,6 +79,61 @@ async function seed() {
     });
     console.log(`FrameworkVersion: "${frameworkVersion.version_code}" — ${fvCreated ? 'creada' : 'ya existía'} (id: ${frameworkVersion.id})`);
     
+    let totalStandards = 0;
+    let totalDRs = 0;
+    let totalDataPoints = 0;
+
+    // Standards
+    for (const standardData of standards) {
+      const [standard, stdCreated] = await Standard.findOrCreate({
+        where: { framework_version_id: frameworkVersion.id, code: standardData.code },
+        defaults: {
+          name: standardData.name,
+          category: standardData.category,
+          is_mandatory: standardData.is_mandatory,
+          sort_order: standardData.sort_order,
+        },
+        transaction,
+      });
+      if (stdCreated) totalStandards++;
+
+      // DisclosureRequirements
+      for (const disclosureRequirementData of standardData.disclosureRequirements) {
+        const [dr, drCreated] = await DisclosureRequirement.findOrCreate({
+          where: { standard_id: standard.id, code: disclosureRequirementData.code },
+          defaults: {
+            name: disclosureRequirementData.name,
+            sort_order: disclosureRequirementData.sort_order,
+          },
+          transaction,
+        });
+        if (drCreated) totalDRs++;
+
+        // DataPoints
+        for (const dataPointData of disclosureRequirementData.dataPoints) {
+          const dataType = dataPointData.data_type;
+
+          const [, dpCreated] = await DataPoint.findOrCreate({
+            where: { official_id: dataPointData.official_id },
+            defaults: {
+              disclosure_requirement_id: dr.id,
+              name: dataPointData.name,
+              paragraph_ref: dataPointData.paragraph_ref,
+              related_ar: dataPointData.related_ar,
+              data_type: dataType,
+              is_voluntary: dataPointData.is_voluntary,
+              is_conditional: dataPointData.is_conditional,
+              phased_in_750: dataPointData.phased_in_750,
+              phased_in_appendix_c: dataPointData.phased_in_appendix_c,
+              cross_reference: dataPointData.cross_reference,
+              link: dataPointData.link,
+            },
+            transaction,
+          });
+          if (dpCreated) totalDataPoints++;
+        }
+      }
+    }
     await transaction.commit();
     process.exit(0);
   } catch (err) {

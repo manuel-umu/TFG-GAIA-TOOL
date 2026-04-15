@@ -114,6 +114,7 @@ class ExcelParser {
             const dr = drMap.get(drCode);
 
             const dataPoint = ExcelParser._buildDataPoint(row, colMap, officialId);
+            dataPoint.link = ExcelParser._extractLink(ws, i, colMap.name);
             dr.dataPoints.push(dataPoint);
         }
     }
@@ -169,6 +170,14 @@ class ExcelParser {
         if (value === null || value === undefined) return false;
         const lower = String(value).toLowerCase().trim();
         return lower.includes('conditional') || lower.includes('alternative');
+    }
+
+    // Extrae el hipervínculo del campo name
+    static _extractLink(ws, rowIdx, colIdx) {
+        const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
+        const cell = ws[cellRef];
+        if (!cell || !cell.l || !cell.l.Target) return null;
+        return cell.l.Target;
     }
 }
 
