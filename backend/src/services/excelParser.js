@@ -76,7 +76,7 @@ class ExcelParser {
             phased_in_appendix_c: 11,
         };
         // El ESRS 2 esta dividido
-        if (!standardsMap.has(meta.code)) { 
+        if (!standardsMap.has(meta.code)) {
             standardsMap.set(meta.code, {
                 code: meta.code,
                 name: meta.name,
@@ -93,7 +93,7 @@ class ExcelParser {
             drMap.set(dr.code, dr);
         }
 
-        for (let i = 2; i < lines.length; i++) {
+        for (let i = 2;i < lines.length;i++) {
             const row = lines[i];
 
             const officialId = ExcelParser._str(row[colMap.id]);
@@ -145,7 +145,7 @@ class ExcelParser {
                 : false,
         };
     }
-    
+
     /*
             AUXILIARES
     */
@@ -163,7 +163,7 @@ class ExcelParser {
         const trimmed = String(value).trim();
         return trimmed !== '';
     }
-    
+
     // Columna H, "Conditional" (Condicional o no) = Si en la celda aparece la palabra "conditional" o "alternative" se considera condicional (devuelve true),
     // si esta vacio o no contiene esas palabras se considera no condicional (devuelve false).
     static _conditionalBool(value) {
