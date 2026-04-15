@@ -135,6 +135,13 @@ async function seed() {
       }
     }
     await transaction.commit();
+
+    console.log('');
+    console.log('Seed completado con exito:');
+    console.log(`  Standards insertados:              ${totalStandards}`);
+    console.log(`  DisclosureRequirements insertados: ${totalDRs}`);
+    console.log(`  DataPoints insertados:             ${totalDataPoints}`);
+
     process.exit(0);
   } catch (err) {
     await transaction.rollback();
