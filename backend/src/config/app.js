@@ -2,6 +2,7 @@ const express = require("express");
 const morgan = require("morgan");
 require("dotenv").config();
 const admin = require("./administration.js");
+const inicial = require("./initialize.js");
 var cors = require('cors');
 const cookieParser = require('cookie-parser');
 const cron = require('node-cron');
@@ -60,6 +61,7 @@ app.use("/api/v2", routesAudit);
 app.use("/api/v2", routesMateriality);
 
 admin.createAdminUser();
+inicial.initialize();
 admin.checkAudits();
 
 cron.schedule('0 0 * * *', async () => {
