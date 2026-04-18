@@ -16,6 +16,8 @@ async function get_materiality_standards(req, res) {
         const assessments = await AuditStandard.findAll({ where: { audit_id: id } });
         const assessmentMap = new Map(assessments.map(a => [a.standard_id, a]));
 
+        console.log('estandares: ', assessmentMap);
+
         const result = standards.map(s => {
             const a = assessmentMap.get(s.id) || null;
             return {

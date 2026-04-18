@@ -1,0 +1,47 @@
+@baseUrl = http://localhost:3000/api/v2
+@auditId = 1
+
+### Login
+# @name login
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "username": "administrator",
+  "password": "admin1"
+}
+
+###
+
+@token = {{login.response.headers.set-cookie}}
+
+### GET - Obtener estandares de materialidad de una auditoria
+GET {{baseUrl}}/audits/{{auditId}}/materiality
+Cookie: {{token}}
+
+###
+
+### POST - Guardar evaluacion de materialidad
+POST {{baseUrl}}/audits/{{auditId}}/materiality
+Content-Type: application/json
+Cookie: {{token}}
+
+{
+  "standards": [
+    {
+      "standard_id": 1,
+      "is_material": true,
+      "justification": "Justificacion 1, es material"
+    },
+    {
+      "standard_id": 2,
+      "is_material": false,
+      "justification": "Justificacion 2, no material"
+    },
+    {
+      "standard_id": 3,
+      "is_material": true,
+      "justification": null
+    }
+  ]
+}

@@ -30,7 +30,7 @@ require('../models/associations.js');
 const ExcelParser = require('../services/excelParser.js');
 
 // TODO: Temporal
-const EXCEL_PATH = path.resolve(__dirname, '..', '..', '..', 'ignore', 'EFRAG IG 3 List of ESRS Data Points (1) (1).xlsx');
+const EXCEL_PATH = path.resolve(__dirname, '..', 'csrd', 'datapoints.xlsx');
 
 async function seed() {
     console.log('Iniciando seed de datos EFRAG...');
