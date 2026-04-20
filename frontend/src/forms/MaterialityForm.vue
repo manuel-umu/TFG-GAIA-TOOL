@@ -1,48 +1,94 @@
+<!-- TODO: 
+- MOdificar boton "Material" para q no se mueva cuando se active o desactive
+- Añadir boton de info del estandard 
+- Mejor no mostrar "Last assessed" si no hay fecha de evaluación previa
+-->
+
 <template>
   <section v-if="action === 'materiality'">
-    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; margin-bottom: 24px;">
       <b-button
         class="mdi mdi-keyboard-backspace button-back"
         @click="closeMateriality"
       />
-      <h1 class="title">Materiality</h1>
+      <h1 class="title">Double Materiality Assessment</h1>
     </div>
 
-    <div v-if="isLoading">Loading...</div>
+    <b-loading :is-full-page="false" v-model="isLoading" />
 
-    <div v-if="!isLoading">
-      <table class="table is-fullwidth is-bordered">
-        <thead>
-          <tr>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Material?</th>
-            <th>Justification</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="std in standards" :key="std.id">
-            <td>{{ std.code }}</td>
-            <td>{{ std.name }}</td>
-            <td>{{ std.category }}</td>
-            <td>
-              <b-switch v-model="std.is_material"></b-switch>
-            </td>
-            <td>
-              <b-input
-                v-model="std.justification"
-                type="textarea"
-                rows="2"
-              />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-if="!isLoading && standards.length === 0" class="notification is-light">
+      No standards found for this audit.
+    </div>
 
-      <div style="margin-top: 20px;">
-        <b-button type="is-success" @click="saveMateriality">
-          Save
+    <div v-if="!isLoading && standards.length > 0">
+      <div v-for="(standards, category) in groupedStandards" :key="category" style="margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; margin-bottom: 12px;">
+          <span
+            class="tag category-tag is-medium"
+            :class="categoryTagClass(category)"
+            style="margin-right: 10px; font-weight: 600; letter-spacing: 0.03em;"
+          >
+            {{ category }}
+          </span>
+          <hr style="flex: 1; margin: 0; border-color: #e0e0e0;" />
+        </div>
+
+        <!-- Lista de estandares para cada categoria ESG -->
+        <div
+          v-for="standard in standards"
+          :key="standard.id"
+          class="box standard-box"
+        >
+          <div class="standard-header">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span class="tag is-dark standard-code">{{ standard.code }}</span>
+              <span class="standard-name">{{ standard.name }}</span>
+              <b-tag v-if="standard.is_mandatory" type="is-warning is-light" style="font-size: 0.75rem;">
+                <b-icon icon="lock" size="is-small" style="margin-right: 3px;" />
+                Mandatory
+              </b-tag>
+              <b-tag v-if="standard.assessment && standard.assessment.assessed_at" type="is-info is-light" style="font-size: 0.72rem;">
+                Last assessed: {{ formatDate(standard.assessment.assessed_at) }}
+              </b-tag>
+            </div>
+
+            <b-switch
+              v-model="localData[standard.id].is_material"
+              type="is-success"
+              style="margin-left: auto; flex-shrink: 0;"
+            >
+              <span :style="localData[standard.id].is_material ? 'color: #3a7d44; font-weight: 600;' : 'color: #888;'">
+                {{ localData[standard.id].is_material ? 'Material' : 'Not material' }}
+              </span>
+            </b-switch>
+          </div>
+
+          <!-- Campo de justificación -->
+          <b-field
+            :label="localData[standard.id].is_material ? 'Justification (required)' : 'Justification (optional)'"
+            label-position="on-border"
+            style="margin-top: 14px;"
+            :type="localData[standard.id].is_material && !localData[standard.id].justification ? 'is-warning' : ''"
+            :message="localData[standard.id].is_material && !localData[standard.id].justification ? 'Provide a justification for material standards' : ''"
+          >
+            <b-input
+              v-model="localData[standard.id].justification"
+              type="textarea"
+              rows="2"
+              placeholder="Explain why this standard is or is not material for this audit..."
+            />
+          </b-field>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+        <b-button
+          type="is-success"
+          icon-left="content-save"
+          :loading="isSaving"
+          @click="saveMateriality"
+        >
+          Save assessment
         </b-button>
       </div>
     </div>
@@ -61,8 +107,24 @@ export default {
   data() {
     return {
       isLoading: false,
+      isSaving: false,
       standards: [],
+      localData: {},
     };
+  },
+  computed: {
+    groupedStandards() {
+      const groups = {};
+      const sorted = this.standards.slice().sort((a, b) => a.sort_order - b.sort_order);
+      sorted.forEach(std => {
+        const cat = std.category || 'Other';
+        if (!groups[cat]) {
+          groups[cat] = [];
+        }
+        groups[cat].push(std);
+      });
+      return groups;
+    },
   },
   mounted() {
     if (this.id_audit) {
@@ -74,35 +136,77 @@ export default {
       try {
         this.isLoading = true;
         const response = await axiosInstance.get(`/audits/${this.id_audit}/materiality`);
-        this.standards = response.data.map(s => {
-          s.is_material = s.assessment.is_material;
-          s.justification = s.assessment.justification;
-          return s;
+        this.standards = response.data;
+        const data = {};
+        this.standards.forEach(std => {
+          data[std.id] = {
+            is_material: std.assessment ? (std.assessment.is_material === true) : false,
+            justification: std.assessment ? (std.assessment.justification || '') : '',
+          };
         });
-        this.isLoading = false;
+        this.localData = data;
       } catch (error) {
-        console.log(error);
+        this.$buefy.snackbar.open({
+          message: 'Error loading materiality data. Please try again.',
+          type: 'is-danger',
+          duration: 7000,
+        });
+        console.error(error);
+      } finally {
         this.isLoading = false;
       }
     },
     saveMateriality: async function() {
-      const payload = this.standards.map(s => ({
-        standard_id: s.id,
-        is_material: s.is_material,
-        justification: s.justification,
+      const payload = this.standards.map(std => ({
+        standard_id: std.id,
+        is_material: this.localData[std.id].is_material,
+        justification: this.localData[std.id].justification || '',
       }));
+
       try {
+        this.isSaving = true;
         await axiosInstance.post(`/audits/${this.id_audit}/materiality`, { standards: payload });
-        alert('Saved');
+        this.$buefy.snackbar.open({
+          message: 'Materiality assessment saved successfully.',
+          type: 'is-success',
+          duration: 4000,
+        });
+        this.$emit('finished-actions-for-audit');
         this.closeMateriality();
       } catch (error) {
-        console.log(error);
-        alert('Error saving');
+        const msg =
+          error.response && error.response.data && error.response.data.message
+            ? error.response.data.message
+            : 'Error saving materiality assessment. Please try again.';
+        this.$buefy.snackbar.open({
+          message: msg,
+          type: 'is-danger',
+          duration: 7000,
+        });
+        console.error(error);
+      } finally {
+        this.isSaving = false;
       }
     },
     closeMateriality: function() {
       this.$emit('remove-action');
       this.$emit('remove-id-audit');
+    },
+    // Colores para cada enfoque de los estandares 
+    categoryTagClass: function(category) {
+      switch (category) {
+        case 'Environmental': return 'is-success';
+        case 'Social': return 'is-info';
+        case 'Governance': return 'is-warning';
+        case 'General': return 'is-light';
+        default: return 'is-light';
+      }
+    },
+    formatDate: function(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     },
   },
 };
@@ -117,7 +221,40 @@ export default {
 }
 
 .title {
+  margin-right: 10px;
   margin-top: 0px !important;
   margin-bottom: 0px !important;
+}
+
+.category-tag {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.standard-box {
+  border-left: 4px solid #adb987;
+  transition: box-shadow 0.15s;
+}
+
+.standard-box:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+}
+
+.standard-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.standard-code {
+  font-family: monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+.standard-name {
+  font-size: 1rem;
+  font-weight: 500;
 }
 </style>
