@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "seed:csrd": "node src/seeds/seedCSRD.js"
+    "seed:csrd": "docker exec tfg-gaia-tool-backend-1 node src/seeds/seedCSRD.js"
   },
   "license": "ISC",
   "dependencies": {
