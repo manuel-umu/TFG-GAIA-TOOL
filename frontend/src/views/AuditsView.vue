@@ -1,6 +1,6 @@
 <template>
   <section class="custom-section">
-    <div v-if="action != 'evaluate'">
+    <div v-if="action !== 'evaluate' && action !== 'materiality'">
       <Header
         title="Audits"
         :perPage="perPage"
@@ -56,6 +56,7 @@
             :actions="rowPendingActions"
             :checkable="false"
             @show="formAuditForShow"
+            @materiality="openMateriality"
             @evaluate="evaluate"
           />
           <Pagination
@@ -75,8 +76,17 @@
         @finished-actions-for-audit="calculateAuditsChange"
       />
     </div>
-    <div v-else>
+    <div v-else-if="action === 'evaluate'">
       <EvaluationForm
+        :action="action"
+        :id_audit="id_audit"
+        @remove-action="action = ''"
+        @remove-id-audit="id_audit = null"
+        @finished-actions-for-audit="getPendingAudits"
+      />
+    </div>
+    <div v-else>
+      <MaterialityForm
         :action="action"
         :id_audit="id_audit"
         @remove-action="action = ''"
@@ -94,6 +104,7 @@ import Pagination from '@/components/Pagination.vue';
 import axiosInstance from '@/services/axiosInstance';
 import AuditForm from '@/forms/AuditForm.vue';
 import EvaluationForm from '@/forms/EvaluationForm.vue';
+import MaterialityForm from '@/forms/MaterialityForm.vue';
 
 export default {
   name: 'AuditsView',
@@ -103,6 +114,7 @@ export default {
     Pagination,
     AuditForm,
     EvaluationForm,
+    MaterialityForm,
   },
   data() {
     return {
@@ -223,7 +235,12 @@ export default {
     rowPendingActions() {
       return [
         { icon: 'mdi mdi-eye', event: 'show' },
-        { 
+        {
+          event: 'materiality',
+          icon: 'mdi mdi-clipboard-check-outline',
+          disabledCondition: (row) => (row.state === 'Closed'),
+        },
+        {
           event: 'evaluate',
           disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || row.state === 'Not evaluated'),
           icon: 'mdi mdi-file-document-edit',
@@ -275,6 +292,10 @@ export default {
     },
     evaluate: function(row) {
       this.action = 'evaluate';
+      this.id_audit = row.id;
+    },
+    openMateriality: function(row) {
+      this.action = 'materiality';
       this.id_audit = row.id;
     },
     getAudits: async function() {
