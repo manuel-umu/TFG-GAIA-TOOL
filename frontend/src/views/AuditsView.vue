@@ -1,6 +1,6 @@
 <template>
   <section class="custom-section">
-    <div v-if="action !== 'evaluate' && action !== 'materiality'">
+    <div v-if="action !== 'evaluate' && action !== 'materiality' && action !== 'questionnaire'">
       <Header
         title="Audits"
         :perPage="perPage"
@@ -57,6 +57,7 @@
             :checkable="false"
             @show="formAuditForShow"
             @materiality="openMateriality"
+            @questionnaire="openQuestionnaire"
             @evaluate="evaluate"
           />
           <Pagination
@@ -85,6 +86,15 @@
         @finished-actions-for-audit="getPendingAudits"
       />
     </div>
+    <div v-else-if="action === 'questionnaire'">
+      <QuestionnaireForm
+        :action="action"
+        :id_audit="id_audit"
+        @remove-action="action = ''"
+        @remove-id-audit="id_audit = null"
+        @finished-actions-for-audit="getPendingAudits"
+      />
+    </div>
     <div v-else>
       <MaterialityForm
         :action="action"
@@ -105,6 +115,7 @@ import axiosInstance from '@/services/axiosInstance';
 import AuditForm from '@/forms/AuditForm.vue';
 import EvaluationForm from '@/forms/EvaluationForm.vue';
 import MaterialityForm from '@/forms/MaterialityForm.vue';
+import QuestionnaireForm from '@/forms/QuestionnaireForm.vue';
 
 export default {
   name: 'AuditsView',
@@ -115,6 +126,7 @@ export default {
     AuditForm,
     EvaluationForm,
     MaterialityForm,
+    QuestionnaireForm,
   },
   data() {
     return {
@@ -241,6 +253,11 @@ export default {
           disabledCondition: (row) => (row.state === 'Closed'),
         },
         {
+          event: 'questionnaire',
+          icon: 'mdi mdi-form-textbox',
+          disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || !row.materiality_complete),
+        },
+        {
           event: 'evaluate',
           disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || row.state === 'Not evaluated' || !row.materiality_complete),
           icon: 'mdi mdi-file-document-edit',
@@ -296,6 +313,10 @@ export default {
     },
     openMateriality: function(row) {
       this.action = 'materiality';
+      this.id_audit = row.id;
+    },
+    openQuestionnaire: function(row) {
+      this.action = 'questionnaire';
       this.id_audit = row.id;
     },
     getAudits: async function() {
