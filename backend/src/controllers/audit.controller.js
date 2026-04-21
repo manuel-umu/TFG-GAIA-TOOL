@@ -10,6 +10,8 @@ const AuditProcessMatrix = require('../models/calculated_element_matrix_saaty.mo
 const AuditProcess = require('../models/calculated_value_process.model.js');
 const EmailService = require('../services/mailer');
 const { get_indicators_and_factors_by_process } = require('./process.controller.js');
+const Standard = require('../models/standard.model.js');
+const AuditStandard = require('../models/audit_standard.model.js');
 
 async function get_audits(req, res) {
     
@@ -710,6 +712,14 @@ async function addAuditDetails(audits) {
             // Obtener organizacion
             const org = await Organizations.findOne({ where: {id: aud.organization} });
             aud.dataValues.organization = org ? org.name : null;
+            // Comprobar si la evaluacion de materialidad esta completa
+            if (!aud.framework_version_id) {
+                aud.dataValues.materiality_complete = false;
+            } else {
+                const totalStandards = await Standard.count({ where: { framework_version_id: aud.framework_version_id } });
+                const assessedStandards = await AuditStandard.count({ where: { audit_id: aud.id } });
+                aud.dataValues.materiality_complete = totalStandards > 0 && assessedStandards >= totalStandards;
+            }
         })
     );
     return audits;

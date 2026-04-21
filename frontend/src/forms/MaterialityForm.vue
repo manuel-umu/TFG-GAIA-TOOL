@@ -1,9 +1,3 @@
-<!-- TODO: 
-- MOdificar boton "Material" para q no se mueva cuando se active o desactive
-- Añadir boton de info del estandard 
-- Mejor no mostrar "Last assessed" si no hay fecha de evaluación previa
--->
-
 <template>
   <section v-if="action === 'materiality'">
     <div style="display: flex; align-items: center; margin-bottom: 24px;">
@@ -52,15 +46,18 @@
               </b-tag>
             </div>
 
-            <b-switch
-              v-model="localData[standard.id].is_material"
-              type="is-success"
-              style="margin-left: auto; flex-shrink: 0;"
-            >
-              <span :style="localData[standard.id].is_material ? 'color: #3a7d44; font-weight: 600;' : 'color: #888;'">
+            <div class="switch-wrapper">
+              <span
+                class="switch-label"
+                :style="{ color: localData[standard.id].is_material ? '#3a7d44' : '#888' }"
+              >
                 {{ localData[standard.id].is_material ? 'Material' : 'Not material' }}
               </span>
-            </b-switch>
+              <b-switch
+                v-model="localData[standard.id].is_material"
+                type="is-success"
+              />
+            </div>
           </div>
 
           <!-- Campo de justificación -->
@@ -68,7 +65,7 @@
             :label="localData[standard.id].is_material ? 'Justification (required)' : 'Justification (optional)'"
             label-position="on-border"
             style="margin-top: 14px;"
-            :type="localData[standard.id].is_material && !localData[standard.id].justification ? 'is-warning' : ''"
+            :type="localData[standard.id].is_material && !localData[standard.id].justification ? 'is-danger' : ''"
             :message="localData[standard.id].is_material && !localData[standard.id].justification ? 'Provide a justification for material standards' : ''"
           >
             <b-input
@@ -202,6 +199,9 @@ export default {
         default: return 'is-light';
       }
     },
+    hasPreviousAssessment: function(standard) {
+      return !!(standard && standard.assessment && standard.assessment.assessed_at);
+    },
     formatDate: function(dateStr) {
       if (!dateStr) return '';
       const d = new Date(dateStr);
@@ -256,5 +256,23 @@ export default {
 .standard-name {
   font-size: 1rem;
   font-weight: 500;
+}
+.switch-wrapper {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.switch-label {
+  display: inline-block;
+  min-width: 95px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.switch-wrapper .b-checkbox.switch {
+  margin-right: 0;
 }
 </style>
