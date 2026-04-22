@@ -89,19 +89,37 @@
                     Conditional
                   </b-tag>
                   <span class="dp-official-id">{{ dp.official_id }}</span>
-                    <b-tooltip
-                      v-if="dp.paragraph_ref || dp.cross_reference"
-                      :label="tooltipContent(dp)"
-                      multilined
-                      position="is-top"
-                      size="is-medium"
-                    >
+                  <div
+                    v-if="dp.paragraph_ref || dp.cross_reference || dp.link"
+                    class="dp-info-wrapper"
+                    @mouseenter="$set(infoOpen, dp.id, true)"
+                    @mouseleave="$set(infoOpen, dp.id, false)"
+                  >
                     <b-icon
                       icon="information-outline"
                       size="is-small"
                       class="dp-info-icon"
                     />
-                    </b-tooltip>
+                    <div v-show="infoOpen[dp.id]" class="dp-info-panel">
+                      <div v-if="dp.paragraph_ref" class="dp-info-line">
+                        <strong>Paragraph:</strong> {{ dp.paragraph_ref }}
+                      </div>
+                      <div v-if="dp.cross_reference" class="dp-info-line">
+                        <strong>Cross-ref:</strong> {{ dp.cross_reference }}
+                      </div>
+                      <div v-if="dp.link" class="dp-info-line dp-info-line--link">
+                        <strong>Link:</strong>
+                        <a
+                          :href="dp.link"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="dp-info-link"
+                        >
+                          {{ dp.link }}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Cabecera línea 2: checkbox Not applicable -->
@@ -305,6 +323,8 @@ export default {
       evidenceOpen: {},
       // Guarda qué dp.id tenían response previo (para no filtrarlos al guardar)
       hadPreviousResponse: {},
+      // Controla qué dp.id tienen el panel de info visible
+      infoOpen: {},
       activeStandardTab: 0,
     };
   },
@@ -455,13 +475,6 @@ export default {
       if (!this.localData[dpId] || !this.localData[dpId].value_text) return null;
       const d = new Date(this.localData[dpId].value_text);
       return isNaN(d.getTime()) ? null : d;
-    },
-
-    tooltipContent: function (dp) {
-      const parts = [];
-      if (dp.paragraph_ref) parts.push('Paragraph: ' + dp.paragraph_ref);
-      if (dp.cross_reference) parts.push('Cross-ref: ' + dp.cross_reference);
-      return parts.join(' | ');
     },
 
     // Construye el payload filtrando entradas vacías sin respuesta previa
@@ -668,7 +681,73 @@ export default {
 
 .dp-info-icon {
   color: #adb987;
-  cursor: help;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.dp-info-icon:hover {
+  color: #7a8f60;
+  background-color: rgba(173, 185, 135, 0.18);
+  transform: scale(1.12);
+}
+
+/* Wrapper que engloba icono + panel: el mouseenter/leave se mide aquí */
+.dp-info-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Panel popover custom */
+.dp-info-panel {
+  position: absolute;
+  /* Empieza justo donde acaba el wrapper, sin gap */
+  top: 100%;
+  right: 0;
+  z-index: 50;
+  background: #fff;
+  border: 1px solid #dbdbdb;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  padding: 10px 14px;
+  min-width: 220px;
+  max-width: 360px;
+  white-space: normal;
+  word-break: break-word;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #363636;
+}
+
+.dp-info-line {
+  margin-bottom: 4px;
+}
+
+.dp-info-line:last-child {
+  margin-bottom: 0;
+}
+
+.dp-info-line--link {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.dp-info-line strong {
+  color: #363636;
+  margin-right: 4px;
+}
+
+.dp-info-link {
+  color: #3273dc;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.dp-info-link:hover {
+  color: #276cda;
 }
 
 .dp-applicable-row {
