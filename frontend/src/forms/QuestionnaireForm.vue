@@ -1,66 +1,286 @@
 <template>
   <section v-if="action === 'questionnaire'">
-    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+    <!-- Cabecera sticky con botón back y título -->
+    <div class="questionnaire-header">
       <b-button
         class="mdi mdi-keyboard-backspace button-back"
         @click="closeQuestionnaire"
       />
-      <h1 class="title">Questionnaire</h1>
+      <h1 class="title">ESRS Questionnaire</h1>
+      <div class="header-actions">
+        <b-button
+          type="is-success"
+          icon-left="content-save"
+          :loading="isSaving"
+          @click="saveDraft"
+        >
+          Save draft
+        </b-button>
+      </div>
     </div>
 
-    <div v-if="isLoading">Loading...</div>
+    <b-loading :is-full-page="false" v-model="isLoading" />
 
-    <div v-if="!isLoading">
-      <div v-for="std in standards" :key="std.id" style="margin-bottom: 30px;">
-        <h2>{{ std.code }} - {{ std.name }}</h2>
+    <div v-if="!isLoading && standards.length === 0" class="notification is-light">
+      No material standards found for this audit. Complete the materiality assessment first.
+    </div>
 
-        <div v-for="dr in std.disclosure_requirements" :key="dr.id" class="box">
-          <h4>{{ dr.code }} - {{ dr.name }}</h4>
-
-          <div v-for="dp in dr.data_points" :key="dp.id" style="margin-bottom: 15px;">
-            <label>{{ dp.name }} ({{ dp.data_type }})</label>
-
-            <!-- boolean -->
-            <b-switch
-              v-if="dp.data_type === 'boolean'"
-              v-model="dp.response.value_text"
-              true-value="true"
-              false-value="false"
+    <div v-if="!isLoading && standards.length > 0">
+      <!-- Tabs verticales: una pestaña por estándar material -->
+      <b-tabs
+        v-model="activeStandardTab"
+        :vertical="standards.length > 1"
+        type="is-boxed"
+        class="questionnaire-tabs"
+      >
+        <b-tab-item
+          v-for="standard in standards"
+          :key="standard.id"
+        >
+          <!-- Label del tab con contador -->
+          <template #header>
+            <span class="tab-label-code">{{ standard.code }}</span>
+            <span class="tab-label-name">{{ standard.name }}</span>
+            <b-tag
+              :type="standardProgress(standard).filled === standardProgress(standard).total ? 'is-success is-light' : 'is-light'"
+              size="is-small"
+              class="tab-counter"
             >
-              {{ dp.response.value_text === 'true' ? 'Yes' : 'No' }}
-            </b-switch>
+              {{ standardProgress(standard).filled }} / {{ standardProgress(standard).total }}
+            </b-tag>
+          </template>
 
-            <!-- narrative -->
-            <b-input
-              v-else-if="dp.data_type === 'narrative'"
-              type="textarea"
-              rows="2"
-              v-model="dp.response.value_text"
-            />
+          <!-- Contenido del estándar: bloques por DisclosureRequirement -->
+          <div
+            v-for="dr in standard.disclosure_requirements"
+            :key="dr.id"
+            class="box dr-box"
+          >
+            <!-- Cabecera del DR -->
+            <div class="dr-header">
+              <span class="tag is-dark dr-code">{{ dr.code }}</span>
+              <span class="dr-name">{{ dr.name }}</span>
+            </div>
 
-            <!-- integer -->
-            <b-input
-              v-else-if="dp.data_type === 'integer'"
-              type="number"
-              v-model="dp.response.value_numeric"
-            />
+            <!-- Lista de DataPoints del DR -->
+            <div
+              v-for="dp in dr.data_points"
+              :key="dp.id"
+              class="dp-block"
+            >
+              <!-- Cabecera línea 1: nombre + tags + official_id -->
+              <div class="dp-header">
+                <div class="dp-title-row">
+                  <span class="dp-name">{{ dp.name }}</span>
+                  <b-tag
+                    v-if="dp.is_voluntary"
+                    type="is-info is-light"
+                    size="is-small"
+                    class="dp-tag"
+                  >
+                    Voluntary
+                  </b-tag>
+                  <b-tag
+                    v-if="dp.is_conditional"
+                    type="is-warning is-light"
+                    size="is-small"
+                    class="dp-tag"
+                  >
+                    Conditional
+                  </b-tag>
+                  <span class="dp-official-id">{{ dp.official_id }}</span>
+                    <b-tooltip
+                      v-if="dp.paragraph_ref || dp.cross_reference"
+                      :label="tooltipContent(dp)"
+                      multilined
+                      position="is-top"
+                      size="is-medium"
+                    >
+                    <b-icon
+                      icon="information-outline"
+                      size="is-small"
+                      class="dp-info-icon"
+                    />
+                    </b-tooltip>
+                </div>
 
-            <!-- percent -->
-            <b-input
-              v-else-if="dp.data_type === 'percent'"
-              type="number"
-              step="0.01"
-              v-model="dp.response.value_numeric"
-            />
+                <!-- Cabecera línea 2: checkbox Not applicable -->
+                <div class="dp-applicable-row">
+                  <b-checkbox
+                    :value="localData[dp.id] && !localData[dp.id].is_applicable"
+                    @input="setNotApplicable(dp.id, $event)"
+                    size="is-small"
+                  >
+                    Not applicable
+                  </b-checkbox>
+                </div>
+              </div>
 
-            <!-- otros tipos: de momento no renderizamos nada -->
+              <!-- Renderizador dinámico por data_type -->
+              <div
+                class="dp-input-area"
+                :class="{ 'dp-disabled': localData[dp.id] && !localData[dp.id].is_applicable }"
+              >
+                <!-- boolean -->
+                <template v-if="dp.data_type === 'boolean'">
+                  <b-field label="Value" label-position="on-border">
+                    <b-switch
+                      :value="localData[dp.id] && localData[dp.id].value_text === 'true'"
+                      :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
+                      @input="setBooleanValue(dp.id, $event)"
+                    >
+                      {{ localData[dp.id] && localData[dp.id].value_text === 'true' ? 'Yes' : 'No' }}
+                    </b-switch>
+                  </b-field>
+                </template>
+
+                <!-- narrative / semi-narrative / string -->
+                <template v-else-if="dp.data_type === 'narrative' || dp.data_type === 'semi-narrative' || dp.data_type === 'string'">
+                  <b-field label="Value" label-position="on-border">
+                    <b-input
+                      type="textarea"
+                      rows="3"
+                      :value="localData[dp.id] ? localData[dp.id].value_text : ''"
+                      :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
+                      placeholder="Enter narrative response..."
+                      @input="setTextValue(dp.id, $event)"
+                    />
+                  </b-field>
+                </template>
+
+                <!-- integer -->
+                <template v-else-if="dp.data_type === 'integer'">
+                  <b-field label="Value" label-position="on-border">
+                    <b-input
+                      type="number"
+                      step="1"
+                      :value="localData[dp.id] ? localData[dp.id].value_numeric : ''"
+                      :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
+                      placeholder="0"
+                      @input="setNumericValue(dp.id, $event)"
+                    />
+                  </b-field>
+                </template>
+
+                <!-- percent -->
+                <template v-else-if="dp.data_type === 'percent'">
+                  <b-field label="Value (%)" label-position="on-border" class="has-addons">
+                    <b-input
+                      type="number"
+                      step="0.01"
+                      :value="localData[dp.id] ? localData[dp.id].value_numeric : ''"
+                      :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
+                      placeholder="0.00"
+                      expanded
+                      @input="setNumericValue(dp.id, $event)"
+                    />
+                    <p class="control">
+                      <span class="button is-static">%</span>
+                    </p>
+                  </b-field>
+                </template>
+
+                <!-- monetary -->
+                <template v-else-if="dp.data_type === 'monetary'">
+                  <b-field label="Value (€)" label-position="on-border" class="has-addons">
+                    <p class="control">
+                      <span class="button is-static">€</span>
+                    </p>
+                    <b-input
+                      type="number"
+                      step="0.01"
+                      :value="localData[dp.id] ? localData[dp.id].value_numeric : ''"
+                      :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
+                      placeholder="0.00"
+                      expanded
+                      @input="setNumericValue(dp.id, $event)"
+                    />
+                  </b-field>
+                </template>
+
+                <!-- decimal / value -->
+                <template v-else-if="dp.data_type === 'decimal' || dp.data_type === 'value'">
+                  <b-field label="Value" label-position="on-border">
+                    <b-input
+                      type="number"
+                      step="0.01"
+                      :value="localData[dp.id] ? localData[dp.id].value_numeric : ''"
+                      :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
+                      placeholder="0.00"
+                      @input="setNumericValue(dp.id, $event)"
+                    />
+                  </b-field>
+                </template>
+
+                <!-- date / datetime -->
+                <template v-else-if="dp.data_type === 'date' || dp.data_type === 'datetime'">
+                  <b-field label="Date" label-position="on-border">
+                    <b-datepicker
+                      :value="getDateValue(dp.id)"
+                      :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
+                      placeholder="Select date..."
+                      icon="calendar-today"
+                      trap-focus
+                      @input="setDateValue(dp.id, $event)"
+                    />
+                  </b-field>
+                </template>
+
+                <!-- fallback: cualquier tipo no reconocido -->
+                <template v-else>
+                  <b-field label="Value" label-position="on-border">
+                    <b-input
+                      type="textarea"
+                      rows="2"
+                      :value="localData[dp.id] ? localData[dp.id].value_text : ''"
+                      :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
+                      :placeholder="'Enter value (' + dp.data_type + ')...'"
+                      @input="setTextValue(dp.id, $event)"
+                    />
+                  </b-field>
+                </template>
+
+                <!-- Evidence reference: desplegable opcional -->
+                <div class="evidence-section">
+                  <a
+                    v-if="!evidenceOpen[dp.id]"
+                    class="evidence-toggle"
+                    @click="openEvidence(dp.id)"
+                  >
+                    + Add evidence reference
+                  </a>
+                  <b-field
+                    v-else
+                    label="Evidence reference"
+                    label-position="on-border"
+                    class="evidence-field"
+                  >
+                    <b-input
+                      size="is-small"
+                      :value="localData[dp.id] ? localData[dp.id].evidence_reference : ''"
+                      :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
+                      placeholder="Document reference, file name, URL..."
+                      @input="setEvidenceValue(dp.id, $event)"
+                    />
+                  </b-field>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div style="margin-top: 20px;">
-        <b-button type="is-success" @click="saveDraft">Save</b-button>
-      </div>
+          <!-- Botón guardar al pie del tab también -->
+          <div class="save-footer">
+            <b-button
+              type="is-success"
+              icon-left="content-save"
+              :loading="isSaving"
+              @click="saveDraft"
+            >
+              Save draft
+            </b-button>
+          </div>
+        </b-tab-item>
+      </b-tabs>
     </div>
   </section>
 </template>
@@ -77,7 +297,15 @@ export default {
   data() {
     return {
       isLoading: false,
+      isSaving: false,
       standards: [],
+      // { [data_point_id]: { value_text, value_numeric, is_applicable, evidence_reference, status } }
+      localData: {},
+      // Controla si el campo de evidencia está expandido para cada dp
+      evidenceOpen: {},
+      // Guarda qué dp.id tenían response previo (para no filtrarlos al guardar)
+      hadPreviousResponse: {},
+      activeStandardTab: 0,
     };
   },
   mounted() {
@@ -85,44 +313,219 @@ export default {
       this.loadQuestionnaire();
     }
   },
+  computed: {
+    // Devuelve { filled, total } para mostrar el contador en la pestaña
+    standardProgress() {
+      return (standard) => {
+        let total = 0;
+        let filled = 0;
+        if (!standard.disclosure_requirements) return { filled: 0, total: 0 };
+        standard.disclosure_requirements.forEach((dr) => {
+          if (!dr.data_points) return;
+          dr.data_points.forEach((dp) => {
+            total++;
+            const entry = this.localData[dp.id];
+            if (!entry) return;
+            if (!entry.is_applicable) {
+              filled++;
+              return;
+            }
+            const hasText = entry.value_text !== null && entry.value_text !== '' && entry.value_text !== undefined;
+            const hasNumeric = entry.value_numeric !== null && entry.value_numeric !== '' && entry.value_numeric !== undefined;
+            if (hasText || hasNumeric) filled++;
+          });
+        });
+        return { filled, total };
+      };
+    },
+  },
   methods: {
     loadQuestionnaire: async function () {
       try {
         this.isLoading = true;
         const response = await axiosInstance.get(`/audits/${this.id_audit}/questionnaire`);
-        this.standards = response.data.standards;
-        this.isLoading = false;
-      } catch (error) {
-        console.log(error);
-        this.isLoading = false;
-      }
-    },
-    saveDraft: async function () {
-      const data_points = [];
-      this.standards.forEach(std => {
-        std.disclosure_requirements.forEach(dr => {
-          dr.data_points.forEach(dp => {
-            data_points.push({
-              data_point_id: dp.id,
-              value_text: dp.response.value_text,
-              value_numeric: dp.response.value_numeric,
-              is_applicable: true,
-              evidence_reference: null,
-              status: 'draft',
+        this.standards = response.data.standards || [];
+
+        const localData = {};
+        const hadPrev = {};
+        const evidenceOpen = {};
+
+        this.standards.forEach((std) => {
+          if (!std.disclosure_requirements) return;
+          std.disclosure_requirements.forEach((dr) => {
+            if (!dr.data_points) return;
+            dr.data_points.forEach((dp) => {
+              const resp = dp.response;
+              hadPrev[dp.id] = resp !== null && resp !== undefined;
+
+              if (resp) {
+                localData[dp.id] = {
+                  value_text: resp.value_text !== undefined ? resp.value_text : null,
+                  value_numeric: resp.value_numeric !== undefined ? resp.value_numeric : null,
+                  is_applicable: resp.is_applicable !== undefined ? resp.is_applicable : true,
+                  evidence_reference: resp.evidence_reference !== undefined ? resp.evidence_reference : null,
+                  status: resp.status || 'draft',
+                };
+                // Abrir evidencia si ya tiene valor
+                if (resp.evidence_reference) {
+                  evidenceOpen[dp.id] = true;
+                }
+              } else {
+                localData[dp.id] = {
+                  value_text: null,
+                  value_numeric: null,
+                  is_applicable: true,
+                  evidence_reference: null,
+                  status: 'pending',
+                };
+              }
             });
           });
         });
-      });
 
-      try {
-        await axiosInstance.post(`/audits/${this.id_audit}/questionnaire`, { data_points });
-        alert('Saved');
+        // Usar $set masivo: asignamos el objeto completo (Vue 2 detecta cambio)
+        this.localData = localData;
+        this.hadPreviousResponse = hadPrev;
+        this.evidenceOpen = evidenceOpen;
       } catch (error) {
-        console.log(error);
-        alert('Error saving');
+        this.$buefy.snackbar.open({
+          message: 'Error loading questionnaire. Please try again.',
+          type: 'is-danger',
+          duration: 7000,
+        });
+        console.error(error);
+      } finally {
+        this.isLoading = false;
       }
     },
+
+    // Marca el campo como editado (status draft) y actualiza la clave dada
+    markEdited: function (dpId, key, value) {
+      if (!this.localData[dpId]) return;
+      const current = this.localData[dpId];
+      this.$set(this.localData, dpId, {
+        ...current,
+        [key]: value,
+        status: 'draft',
+      });
+    },
+
+    setTextValue: function (dpId, value) {
+      this.markEdited(dpId, 'value_text', value || null);
+    },
+
+    setNumericValue: function (dpId, value) {
+      this.markEdited(dpId, 'value_numeric', value !== '' && value !== null && value !== undefined ? value : null);
+    },
+
+    setBooleanValue: function (dpId, value) {
+      this.markEdited(dpId, 'value_text', value ? 'true' : 'false');
+    },
+
+    setDateValue: function (dpId, dateObj) {
+      if (!dateObj) {
+        this.markEdited(dpId, 'value_text', null);
+        return;
+      }
+      // Convertir a ISO string y guardar en value_text
+      const iso = dateObj instanceof Date ? dateObj.toISOString() : String(dateObj);
+      this.markEdited(dpId, 'value_text', iso);
+    },
+
+    setNotApplicable: function (dpId, notApplicable) {
+      if (!this.localData[dpId]) return;
+      const current = this.localData[dpId];
+      this.$set(this.localData, dpId, {
+        ...current,
+        is_applicable: !notApplicable,
+        status: 'draft',
+      });
+    },
+
+    setEvidenceValue: function (dpId, value) {
+      this.markEdited(dpId, 'evidence_reference', value || null);
+    },
+
+    openEvidence: function (dpId) {
+      this.$set(this.evidenceOpen, dpId, true);
+    },
+
+    // Parsea el value_text ISO como objeto Date para b-datepicker
+    getDateValue: function (dpId) {
+      if (!this.localData[dpId] || !this.localData[dpId].value_text) return null;
+      const d = new Date(this.localData[dpId].value_text);
+      return isNaN(d.getTime()) ? null : d;
+    },
+
+    tooltipContent: function (dp) {
+      const parts = [];
+      if (dp.paragraph_ref) parts.push('Paragraph: ' + dp.paragraph_ref);
+      if (dp.cross_reference) parts.push('Cross-ref: ' + dp.cross_reference);
+      return parts.join(' | ');
+    },
+
+    // Construye el payload filtrando entradas vacías sin respuesta previa
+    buildPayload: function () {
+      const dataPoints = [];
+      Object.entries(this.localData).forEach(([id, entry]) => {
+        const dpId = Number(id);
+        const hadPrev = this.hadPreviousResponse[dpId];
+        const hasText = entry.value_text !== null && entry.value_text !== '' && entry.value_text !== undefined;
+        const hasNumeric = entry.value_numeric !== null && entry.value_numeric !== '' && entry.value_numeric !== undefined;
+        const notApplicable = !entry.is_applicable;
+        const hasEvidence = entry.evidence_reference !== null && entry.evidence_reference !== '' && entry.evidence_reference !== undefined;
+
+        // Incluir si: tiene valor rellenado, está marcado N/A, ya tenía respuesta previa
+        if (hasText || hasNumeric || notApplicable || hasEvidence || hadPrev) {
+          dataPoints.push({
+            data_point_id: dpId,
+            value_text: entry.value_text || null,
+            value_numeric: entry.value_numeric || null,
+            is_applicable: entry.is_applicable,
+            evidence_reference: entry.evidence_reference || null,
+            status: entry.status || 'draft',
+          });
+        }
+      });
+      return dataPoints;
+    },
+
+    saveDraft: async function () {
+      try {
+        this.isSaving = true;
+        const dataPoints = this.buildPayload();
+        await axiosInstance.post(`/audits/${this.id_audit}/questionnaire`, {
+          data_points: dataPoints,
+        });
+        // Marcar como teniendo respuesta previa todos los enviados
+        dataPoints.forEach((dp) => {
+          this.$set(this.hadPreviousResponse, dp.data_point_id, true);
+        });
+        this.$buefy.snackbar.open({
+          message: 'Draft saved successfully.',
+          type: 'is-success',
+          duration: 4000,
+        });
+        // No cerramos el formulario, el usuario continúa rellenando
+      } catch (error) {
+        const msg =
+          error.response && error.response.data && error.response.data.message
+            ? error.response.data.message
+            : 'Error saving questionnaire. Please try again.';
+        this.$buefy.snackbar.open({
+          message: msg,
+          type: 'is-danger',
+          duration: 7000,
+        });
+        console.error(error);
+      } finally {
+        this.isSaving = false;
+      }
+    },
+
     closeQuestionnaire: function () {
+      // Al cerrar manualmente se refresca la tabla padre
+      this.$emit('finished-actions-for-audit');
       this.$emit('remove-action');
       this.$emit('remove-id-audit');
     },
@@ -131,15 +534,182 @@ export default {
 </script>
 
 <style scoped>
+.questionnaire-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  padding: 12px 0 12px 0;
+  border-bottom: 1px solid #e8e8e8;
+}
+
 .button-back {
   margin-right: 20px;
   color: #adb987;
   border-radius: 30px;
   max-width: 40px;
+  flex-shrink: 0;
 }
 
 .title {
-  margin-top: 0px !important;
-  margin-bottom: 0px !important;
+  margin-right: 10px;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  flex: 1;
+}
+
+.header-actions {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Tabs */
+.questionnaire-tabs {
+  margin-top: 8px;
+}
+
+.tab-label-code {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.88rem;
+  margin-right: 6px;
+  color: #363636;
+}
+
+.tab-label-name {
+  font-size: 0.82rem;
+  color: #555;
+  margin-right: 6px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.tab-counter {
+  flex-shrink: 0;
+}
+
+/* DisclosureRequirement box */
+.dr-box {
+  border-left: 4px solid #adb987;
+  margin-bottom: 20px;
+  transition: box-shadow 0.15s;
+}
+
+.dr-box:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.dr-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.dr-code {
+  font-family: monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.dr-name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* DataPoint block */
+.dp-block {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: #fafafa;
+}
+
+.dp-header {
+  margin-bottom: 10px;
+}
+
+.dp-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.dp-name {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #363636;
+}
+
+.dp-tag {
+  font-size: 0.72rem;
+}
+
+.dp-official-id {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: #888;
+  background: #f0f0f0;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.dp-info-icon {
+  color: #adb987;
+  cursor: help;
+}
+
+.dp-applicable-row {
+  margin-top: 2px;
+}
+
+.dp-input-area {
+  margin-top: 8px;
+}
+
+.dp-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Evidence */
+.evidence-section {
+  margin-top: 8px;
+}
+
+.evidence-toggle {
+  font-size: 0.78rem;
+  color: #adb987;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.evidence-toggle:hover {
+  color: #7a8f60;
+}
+
+.evidence-field {
+  margin-top: 6px;
+}
+
+/* Footer guardar */
+.save-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e8e8e8;
 }
 </style>
