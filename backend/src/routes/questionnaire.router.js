@@ -4,5 +4,6 @@ const questionnaireController = require('../controllers/questionnaire.controller
 const { checkUser } = require('../utils/autorizationMildware.js');
 
 router.get('/audits/:id/questionnaire', checkUser(), questionnaireController.get_questionnaire);
+router.post('/audits/:id/questionnaire', checkUser(), questionnaireController.save_questionnaire);
 
 module.exports = router;

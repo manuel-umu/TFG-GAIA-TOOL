@@ -6,6 +6,7 @@ const Indicator = require('../models/indicator.model.js');
 const Process = require('../models/process.model.js');
 const ProcessIndicatorFactor = require('../models/process_indicator_factor.model.js');
 const Audit = require('../models/audit.model.js');
+const FrameworkVersion = require('../models/framework_version.model.js');
 
 //temporal
 async function initialize() {
@@ -110,13 +111,14 @@ async function initialize() {
                 organization: org.id,
                 manager: admin.id,
                 auditor: evaluator.id,
+                framework_version_id: 1,
             });
             console.log('Audit created');
         }
 
         console.log('Data seed completed.');
     }catch(error){
-        console.log("Algo ha pasado en el initialize")
+        console.log("Algo ha pasado en el initialize " + error);
     }
 
 }
