@@ -55,11 +55,15 @@ async function save_materiality(req, res) {
         const audit = await Audit.findOne({ where: { id } });
         if (!audit) return res.status(404).json({ error: 'Audit not found' });
 
+        const standardIds = standards.map(s => s.standard_id);
+        const dbStandards = await Standard.findAll({ where: { id: standardIds } });
+        const mandatorySet = new Set(dbStandards.filter(s => s.is_mandatory).map(s => s.id));
+
         const now = new Date();
         const records = standards.map(s => ({
             audit_id: parseInt(id, 10),
             standard_id: s.standard_id,
-            is_material: s.is_material,
+            is_material: mandatorySet.has(s.standard_id) ? true : s.is_material,
             justification: s.justification || null,
             assessed_by: req.user.id,
             assessed_at: now,

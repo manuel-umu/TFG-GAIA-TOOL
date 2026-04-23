@@ -12,6 +12,8 @@ const EmailService = require('../services/mailer');
 const { get_indicators_and_factors_by_process } = require('./process.controller.js');
 const Standard = require('../models/standard.model.js');
 const AuditStandard = require('../models/audit_standard.model.js');
+const FrameworkVersion = require('../models/framework_version.model.js');
+const Framework = require('../models/framework.model.js');
 
 async function get_audits(req, res) {
     
@@ -715,10 +717,18 @@ async function addAuditDetails(audits) {
             // Comprobar si la evaluacion de materialidad esta completa
             if (!aud.framework_version_id) {
                 aud.dataValues.materiality_complete = false;
+                aud.dataValues.framework_code = null;
             } else {
                 const totalStandards = await Standard.count({ where: { framework_version_id: aud.framework_version_id } });
                 const assessedStandards = await AuditStandard.count({ where: { audit_id: aud.id } });
                 aud.dataValues.materiality_complete = totalStandards > 0 && assessedStandards >= totalStandards;
+                const fv = await FrameworkVersion.findOne({ where: { id: aud.framework_version_id } });
+                if (fv) {
+                    const fw = await Framework.findOne({ where: { id: fv.framework_id } });
+                    aud.dataValues.framework_code = fw ? fw.code : null;
+                } else {
+                    aud.dataValues.framework_code = null;
+                }
             }
         })
     );

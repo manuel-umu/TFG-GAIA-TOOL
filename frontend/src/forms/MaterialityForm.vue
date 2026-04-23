@@ -51,22 +51,23 @@
                 class="switch-label"
                 :style="{ color: localData[standard.id].is_material ? '#3a7d44' : '#888' }"
               >
-                {{ localData[standard.id].is_material ? 'Material' : 'Not material' }}
+                {{ standard.is_mandatory ? 'Always material' : (localData[standard.id].is_material ? 'Material' : 'Not material') }}
               </span>
               <b-switch
                 v-model="localData[standard.id].is_material"
                 type="is-success"
+                :disabled="standard.is_mandatory"
               />
             </div>
           </div>
 
           <!-- Campo de justificación -->
           <b-field
-            :label="localData[standard.id].is_material ? 'Justification (required)' : 'Justification (optional)'"
+            :label="(!standard.is_mandatory && localData[standard.id].is_material) ? 'Justification (required)' : 'Justification (optional)'"
             label-position="on-border"
             style="margin-top: 14px;"
-            :type="localData[standard.id].is_material && !localData[standard.id].justification ? 'is-danger' : ''"
-            :message="localData[standard.id].is_material && !localData[standard.id].justification ? 'Provide a justification for material standards' : ''"
+            :type="(!standard.is_mandatory && localData[standard.id].is_material && !localData[standard.id].justification) ? 'is-danger' : ''"
+            :message="(!standard.is_mandatory && localData[standard.id].is_material && !localData[standard.id].justification) ? 'Provide a justification for material standards' : ''"
           >
             <b-input
               v-model="localData[standard.id].justification"
@@ -137,7 +138,7 @@ export default {
         const data = {};
         this.standards.forEach(std => {
           data[std.id] = {
-            is_material: std.assessment ? (std.assessment.is_material === true) : false,
+            is_material: std.is_mandatory ? true : (std.assessment ? (std.assessment.is_material === true) : false),
             justification: std.assessment ? (std.assessment.justification || '') : '',
           };
         });
@@ -156,7 +157,7 @@ export default {
     saveMateriality: async function() {
       const payload = this.standards.map(std => ({
         standard_id: std.id,
-        is_material: this.localData[std.id].is_material,
+        is_material: std.is_mandatory ? true : this.localData[std.id].is_material,
         justification: this.localData[std.id].justification || '',
       }));
 
