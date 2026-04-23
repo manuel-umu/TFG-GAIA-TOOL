@@ -138,6 +138,36 @@
             </option>
           </b-select>
         </b-field>
+
+        <div style="display: flex; gap: 16px;">
+          <b-field label="Framework" for="framework" style="flex: 1;">
+            <b-select
+              id="framework"
+              v-model="framework_id"
+              placeholder="Select a framework"
+              expanded
+            >
+              <option v-for="f in frameworks" :key="f.id" :value="f.id">
+                {{ f.code }} — {{ f.name }}
+              </option>
+            </b-select>
+          </b-field>
+
+          <b-field label="Framework Version" for="framework_version" style="flex: 1;">
+            <b-select
+              id="framework_version"
+              v-model="framework_version_id"
+              placeholder="Select a version"
+              :disabled="!framework_id"
+              expanded
+            >
+              <option v-for="v in frameworkVersions" :key="v.id" :value="v.id">
+                {{ v.version_label }}
+              </option>
+            </b-select>
+          </b-field>
+        </div>
+
         <span v-if="messageProcesses != ''" style="color: red;"> {{ messageProcesses }}</span>
         <div style="display: flex;">
           <div style="flex: 1; margin: 5px; margin-left: 0px !important;">
@@ -298,6 +328,10 @@ export default {
       users: [], // Usuarios posibles auditores
       organizations: [], // Organizaciones disponibles
       frequencies: ["Daily", "Weekly", "Monthly", "Quarterly", "Annual"],
+      frameworks: [],
+      frameworkVersions: [],
+      framework_id: null,
+      framework_version_id: null,
       processes: [], // Procesos de negocio
       
       strategicProcesses: [], // Todos los procesos de negocio estrategicos
@@ -355,12 +389,16 @@ export default {
             this.messageInitDate = '';
             this.messageEndDate = '';
             this.messageFrequency = '';
-            this.messageOrganization = '';  
+            this.messageOrganization = '';
             this.messageDescription = '';
             this.messageProcKey = '';
             this.messageProcStrategic = '';
             this.messageProcSupport = '';
             this.messageProcesses = '';
+
+            this.framework_id = null;
+            this.framework_version_id = null;
+            this.frameworkVersions = [];
 
             this.selectedKeyProc = [];
             this.selectedStrProc = [];
@@ -369,6 +407,15 @@ export default {
             this.strategicProcess = '';
             this.supportProcess = '';
         }
+    },
+    framework_id: function(newVal) {
+      this.framework_version_id = null;
+      if (newVal) {
+        const found = this.frameworks.find(f => f.id === newVal);
+        this.frameworkVersions = found ? found.versions : [];
+      } else {
+        this.frameworkVersions = [];
+      }
     },
   },
   computed: {
@@ -402,8 +449,17 @@ export default {
     this.userId = localStorage.getItem('id');
     await this.getOrganizations();
     await this.getUsers();
+    await this.getFrameworks();
   },
   methods: {
+    getFrameworks: async function() {
+      try {
+        const response = await axiosInstance.get('/frameworks');
+        this.frameworks = response.data || [];
+      } catch (error) {
+        console.log(error);
+      }
+    },
     getUsers: async function() {
       try {
         const response = await axiosInstance.get('/users');
@@ -508,6 +564,16 @@ export default {
         this.init_date = new Date(audit.init_date);
         this.end_date = new Date(audit.end_date);
         this.frequency = audit.frequency;
+        this.framework_version_id = audit.framework_version_id || null;
+        if (audit.framework_version_id) {
+          const parentFramework = this.frameworks.find(f =>
+            f.versions && f.versions.some(v => v.id === audit.framework_version_id)
+          );
+          if (parentFramework) {
+            this.framework_id = parentFramework.id;
+            this.frameworkVersions = parentFramework.versions;
+          }
+        }
         this.organization = audit.organization;
         const proc = audit.processes;
         for (const p of proc) {
@@ -578,6 +644,7 @@ export default {
             'frequency': this.frequency,
             'organization': this.organization,
             'processes': proc,
+            'framework_version_id': this.framework_version_id || null,
           });
           this.isLoading = false;
           this.closeModal();
@@ -617,6 +684,7 @@ export default {
             'frequency': this.frequency,
             'organization': this.organization,
             'processes': proc,
+            'framework_version_id': this.framework_version_id || null,
           });
           this.isLoading = false;
           this.closeModal();
