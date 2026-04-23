@@ -14,6 +14,7 @@ const Standard = require('../models/standard.model.js');
 const AuditStandard = require('../models/audit_standard.model.js');
 const FrameworkVersion = require('../models/framework_version.model.js');
 const Framework = require('../models/framework.model.js');
+const AuditDatapoints = require('../models/audit_data_points.model.js');
 
 async function get_audits(req, res) {
     
@@ -683,7 +684,26 @@ async function close_audit(req, res) {
         if (!audit) {
             return res.status(404).json({ error: 'Audit not found' });
         }
-        if (audit.state !== 'Evaluated') {
+        if (audit.state === 'Evaluated') {
+            // OK — auditoría AHP ya evaluada, puede cerrarse
+        } else if (audit.framework_version_id) {
+            // Auditoría CSRD: verificar que todos los datapoints aplicables están completados/validados
+            const pendingDPs = await AuditDatapoints.count({
+                where: {
+                    audit_id: id,
+                    is_applicable: true,
+                    status: 'pending',
+                },
+            });
+            const totalApplicableDPs = await AuditDatapoints.count({
+                where: { audit_id: id, is_applicable: true },
+            });
+            if (totalApplicableDPs === 0 || pendingDPs > 0) {
+                return res.status(400).json({
+                    error: 'All applicable datapoints must be completed or validated before closing',
+                });
+            }
+        } else {
             return res.status(400).json({ error: 'Only evaluated audits can be closed' });
         }
         await Audits.update(
@@ -718,6 +738,7 @@ async function addAuditDetails(audits) {
             if (!aud.framework_version_id) {
                 aud.dataValues.materiality_complete = false;
                 aud.dataValues.framework_code = null;
+                aud.dataValues.questionnaire_complete = false;
             } else {
                 const totalStandards = await Standard.count({ where: { framework_version_id: aud.framework_version_id } });
                 const assessedStandards = await AuditStandard.count({ where: { audit_id: aud.id } });
@@ -729,6 +750,17 @@ async function addAuditDetails(audits) {
                 } else {
                     aud.dataValues.framework_code = null;
                 }
+                const pendingDPs = await AuditDatapoints.count({
+                    where: {
+                        audit_id: aud.id,
+                        is_applicable: true,
+                        status: 'pending',
+                    },
+                });
+                const totalApplicableDPs = await AuditDatapoints.count({
+                    where: { audit_id: aud.id, is_applicable: true },
+                });
+                aud.dataValues.questionnaire_complete = totalApplicableDPs > 0 && pendingDPs === 0;
             }
         })
     );

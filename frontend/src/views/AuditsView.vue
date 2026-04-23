@@ -240,10 +240,14 @@ export default {
           disabledCondition: (row) => row.state !== 'Not started',
         },
         { icon: 'mdi mdi-delete', event: 'remove' },
-        { 
-          icon: 'mdi mdi-lock', 
+        {
+          icon: 'mdi mdi-lock',
           event: 'close',
-          disabledCondition: (row) => row.state !== 'Evaluated'
+          disabledCondition: (row) => {
+            if (row.state === 'Evaluated') return false;
+            if (row.framework_code && row.questionnaire_complete) return false;
+            return true;
+          }
         }
       ]
     },
