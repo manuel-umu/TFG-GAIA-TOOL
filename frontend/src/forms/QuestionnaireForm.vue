@@ -12,9 +12,9 @@
           type="is-success"
           icon-left="content-save"
           :loading="isSaving"
-          @click="saveDraft"
+          @click="save"
         >
-          Save draft
+          Save
         </b-button>
       </div>
     </div>
@@ -384,7 +384,7 @@ export default {
                   value_numeric: resp.value_numeric !== undefined ? resp.value_numeric : null,
                   is_applicable: resp.is_applicable !== undefined ? resp.is_applicable : true,
                   evidence_reference: resp.evidence_reference !== undefined ? resp.evidence_reference : null,
-                  status: resp.status || 'draft',
+                  status: resp.status === 'completed' ? 'completed' : 'pending',
                 };
                 // Abrir evidencia si ya tiene valor
                 if (resp.evidence_reference) {
@@ -419,14 +419,14 @@ export default {
       }
     },
 
-    // Marca el campo como editado (status draft) y actualiza la clave dada
+    // Marca el campo como editado (status completed) y actualiza la clave dada
     markEdited: function (dpId, key, value) {
       if (!this.localData[dpId]) return;
       const current = this.localData[dpId];
       this.$set(this.localData, dpId, {
         ...current,
         [key]: value,
-        status: 'draft',
+        status: 'completed',
       });
     },
 
@@ -458,7 +458,7 @@ export default {
       this.$set(this.localData, dpId, {
         ...current,
         is_applicable: !notApplicable,
-        status: 'draft',
+        status: 'completed',
       });
     },
 
@@ -496,14 +496,14 @@ export default {
             value_numeric: entry.value_numeric || null,
             is_applicable: entry.is_applicable,
             evidence_reference: entry.evidence_reference || null,
-            status: entry.status || 'draft',
+            status: (hasText || hasNumeric || notApplicable) ? 'completed' : 'pending',
           });
         }
       });
       return dataPoints;
     },
 
-    saveDraft: async function () {
+    save: async function () {
       try {
         this.isSaving = true;
         const dataPoints = this.buildPayload();
@@ -515,7 +515,7 @@ export default {
           this.$set(this.hadPreviousResponse, dp.data_point_id, true);
         });
         this.$buefy.snackbar.open({
-          message: 'Draft saved successfully.',
+          message: 'Questionnaire saved successfully.',
           type: 'is-success',
           duration: 4000,
         });

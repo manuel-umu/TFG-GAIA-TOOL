@@ -48,7 +48,7 @@ AuditDatapoints.init(
             allowNull: true,
         },
         status: {
-            type: DataTypes.ENUM('pending', 'draft', 'completed', 'validated'),
+            type: DataTypes.ENUM('pending', 'completed'),
             allowNull: false,
             defaultValue: 'pending',
         },
