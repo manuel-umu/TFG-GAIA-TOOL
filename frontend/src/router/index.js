@@ -7,6 +7,7 @@ import processesRoutes from './businessProcesses';
 import auditsRoutes from './audits';
 import reportsRoutes from './reports';
 import statisticsRoutes from './statistics';
+import frameworksRoutes from './frameworks';
 import { isAuthenticated } from '../services/auth';
 
 Vue.use(Router);
@@ -21,6 +22,7 @@ const router = new Router({
         ...auditsRoutes,
         ...reportsRoutes,
         ...statisticsRoutes,
+        ...frameworksRoutes,
         {
             path: '*',
             meta: { is404: true }

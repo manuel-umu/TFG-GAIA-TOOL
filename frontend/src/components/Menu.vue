@@ -54,8 +54,16 @@
           </b-menu-item>
           <b-menu-item
             class="custom-item"
+            :active="selectedItem.label === 'Frameworks' ? true : false"
+            :label="isCollapsed ? '' : 'Frameworks'"
+            icon="mdi mdi-file-document-multiple-outline"
+            @click="selectItem({ label: 'Frameworks', path: '/frameworks' })"
+          >
+          </b-menu-item>
+          <b-menu-item
+            class="custom-item"
             :active="selectedItem.label === 'Reports' ? true : false"
-            :label="isCollapsed ? '' : 'Reports'" 
+            :label="isCollapsed ? '' : 'Reports'"
             icon="mdi mdi-file-check"
             @click="selectItem({ label: 'Reports', path: '/reports'})"
           >
@@ -128,6 +136,8 @@ export default {
         this.selectedItem = { label: 'Settings', path: '/settings' };
       } else if (path == '/profile'){
         this.selectedItem = { label: 'Profile', path: '/profile' };
+      } else if (path == '/frameworks'){
+        this.selectedItem = { label: 'Frameworks', path: '/frameworks' };
       } else if (path == '/reports'){
         this.selectedItem = { label: 'Reports', path: '/reports' };
       } else if (path == '/statistics'){

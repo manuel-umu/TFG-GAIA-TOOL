@@ -30,6 +30,13 @@
       </div>
     </div>
     <div class="grid-item">
+      <div class="custome-card" @click="onFrameworks">
+        <img class="img-card" src="../assets/images/reportes.png" width="50" height="50">
+        <h1 class="title-card">REGULATORY FRAMEWORKS</h1>
+        <p class="description-card">Explore and manage CSRD/ESRS normative frameworks, standards, disclosure requirements and data points.</p>
+      </div>
+    </div>
+    <div class="grid-item">
       <div class="custome-card" @click="onReports">
         <img class="img-card" id="img-organisation" src="../assets/images/reportes.png" width="50" height="50">
         <h1 class="title-card">AUDITS REPORTS MANAGEMENT</h1>
@@ -114,6 +121,9 @@ export default {
     },    
     onAudits: function() {
       this.$router.push("/audits").catch(() => {});
+    },
+    onFrameworks: function() {
+      this.$router.push("/frameworks").catch(() => {});
     },
     onReports: function() {
       this.$router.push("/reports").catch(() => {});
