@@ -46,7 +46,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json()); // para application/json
+app.use(express.json({ limit: '10mb' })); // para application/json
 app.use(express.urlencoded({ extended: true })); // para form-data o x-www-form-urlencoded
 app.use(morgan("dev"));
 app.use(cookieParser()); 

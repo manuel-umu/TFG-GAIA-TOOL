@@ -135,4 +135,166 @@ async function get_standard_detail(req, res) {
     }
 }
 
-module.exports = { get_frameworks, get_standards_by_version, get_standard_detail };
+// ─── Upload: preview e importación de normativa ───────────────────────────
+
+// Mapa en memoria: token -> { framework, frameworkVersion, standards, createdAt }
+// Para no enviar dos veces, una para el preview y otra para subirlo al final
+const previewStore = new Map();
+
+async function preview_upload(req, res) {
+    try {
+        const { framework: fwData, frameworkVersion: fvData, standards } = req.body;
+
+        if (!fwData?.code || !fwData?.name || !fvData?.version_code || !fvData?.version_label) {
+            return res.status(400).json({ error: 'Missing required metadata fields' });
+        }
+        if (!Array.isArray(standards) || standards.length === 0) {
+            return res.status(400).json({ error: 'No standards found in the parsed data' });
+        }
+
+        const existingFw = await Framework.findOne({ where: { code: fwData.code } });
+        let versionConflict = false;
+        if (existingFw) {
+            const existingFv = await FrameworkVersion.findOne({
+                where: { framework_id: existingFw.id, version_code: fvData.version_code },
+            });
+            versionConflict = !!existingFv;
+        }
+
+        const summary = standards.map(s => ({
+            code: s.code,
+            name: s.name,
+            category: s.category,
+            is_mandatory: s.is_mandatory,
+            dr_count: s.disclosureRequirements?.length || 0,
+            datapoint_count: (s.disclosureRequirements || []).reduce((sum, dr) => sum + (dr.dataPoints?.length || 0), 0),
+        }));
+
+        const total_drs = summary.reduce((s, r) => s + r.dr_count, 0);
+        const total_dps = summary.reduce((s, r) => s + r.datapoint_count, 0);
+
+        const token = require('crypto').randomUUID();
+        previewStore.set(token, { framework: fwData, frameworkVersion: fvData, standards, createdAt: Date.now() });
+
+        // Limpiar tokens viejos (>30 min)
+        for (const [k, v] of previewStore.entries()) {
+            if (Date.now() - v.createdAt > 30 * 60 * 1000) previewStore.delete(k);
+        }
+
+        return res.status(200).json({ token, version_conflict: versionConflict, summary, total_drs, total_dps });
+    } catch (error) {
+        console.error('Error in preview_upload:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+// Se sube finalmente a bbdd
+async function confirm_import(req, res) {
+    const { token } = req.params;
+    const stored = previewStore.get(token);
+    if (!stored) {  // Solo si pasan 30 minutos (TTL del token)
+        return res.status(404).json({ error: 'Preview token not found or expired. Please upload the file again.' });
+    }
+
+    const { framework: frameworkData, frameworkVersion: frameworkVersionData, standards } = parseado;
+    const transaction = await sequelize.transaction();
+
+    try {   // Misma logica que el seeder del backend
+        // Framework
+        const [framework, fwCreated] = await Framework.findOrCreate({
+            where: { code: frameworkData.code },
+            defaults: {
+                name: frameworkData.name,
+                description: frameworkData.description,
+                issuing_body: frameworkData.issuing_body,
+            },
+            transaction,
+        });
+        console.log(`Framework "${framework.code}" — ${fwCreated ? 'creado' : 'ya existía'} (id: ${framework.id})`);
+
+        // FrameworkVersion
+        const [frameworkVersion, fvCreated] = await FrameworkVersion.findOrCreate({
+            where: { framework_id: framework.id, version_code: frameworkVersionData.version_code },
+            defaults: {
+                version_label: frameworkVersionData.version_label,
+                effective_date: frameworkVersionData.effective_date,
+                source_file: frameworkVersionData.source_file,
+            },
+            transaction,
+        });
+        console.log(`FrameworkVersion: "${frameworkVersion.version_code}" — ${fvCreated ? 'creada' : 'ya existía'} (id: ${frameworkVersion.id})`);
+
+        let totalStandards = 0;
+        let totalDRs = 0;
+        let totalDataPoints = 0;
+
+        // Standards
+        for (const standardData of standards) {
+            const [standard, stdCreated] = await Standard.findOrCreate({
+                where: { framework_version_id: frameworkVersion.id, code: standardData.code },
+                defaults: {
+                    name: standardData.name,
+                    category: standardData.category,
+                    is_mandatory: standardData.is_mandatory,
+                    sort_order: standardData.sort_order,
+                },
+                transaction,
+            });
+            if (stdCreated) totalStandards++;
+
+            // DisclosureRequirements
+            for (const disclosureRequirementData of standardData.disclosureRequirements) {
+                const [dr, drCreated] = await DisclosureRequirement.findOrCreate({
+                    where: { standard_id: standard.id, code: disclosureRequirementData.code },
+                    defaults: {
+                        name: disclosureRequirementData.name,
+                        sort_order: disclosureRequirementData.sort_order,
+                    },
+                    transaction,
+                });
+                if (drCreated) totalDRs++;
+
+                // DataPoints
+                for (const dataPointData of disclosureRequirementData.dataPoints) {
+                    const dataType = dataPointData.data_type;
+
+                    const [, dpCreated] = await DataPoint.findOrCreate({
+                        where: { official_id: dataPointData.official_id },
+                        defaults: {
+                            disclosure_requirement_id: dr.id,
+                            name: dataPointData.name,
+                            paragraph_ref: dataPointData.paragraph_ref,
+                            related_ar: dataPointData.related_ar,
+                            data_type: dataType,
+                            is_voluntary: dataPointData.is_voluntary,
+                            is_conditional: dataPointData.is_conditional,
+                            phased_in_750: dataPointData.phased_in_750,
+                            phased_in_appendix_c: dataPointData.phased_in_appendix_c,
+                            cross_reference: dataPointData.cross_reference,
+                            link: dataPointData.link,
+                        },
+                        transaction,
+                    });
+                    if (dpCreated) totalDataPoints++;
+                }
+            }
+        }
+
+        await transaction.commit();
+        // Borrar el token para evitar importaciones duplicadas
+        previewStore.delete(token);
+
+        return res.status(201).json({
+            message: 'Framework imported successfully',
+            framework_id: framework.id,
+            framework_version_id: frameworkVersion.id,
+            totals: { standards: totalStandards, disclosure_requirements: totalDRs, data_points: totalDataPoints },
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error importing the framework:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+module.exports = { get_frameworks, get_standards_by_version, get_standard_detail, preview_upload, confirm_import };

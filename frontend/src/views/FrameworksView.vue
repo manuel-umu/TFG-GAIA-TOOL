@@ -33,6 +33,17 @@
 
       <!-- Panel derecho: contenido -->
       <div class="fw-content">
+        <div class="fw-content-topbar">
+          <b-button
+            type="is-primary"
+            icon-left="upload"
+            size="is-small"
+            @click="$router.push('/frameworks/upload')"
+          >
+            Upload Framework
+          </b-button>
+        </div>
+
         <div v-if="!selectedVersion" class="fw-empty">
           <b-icon icon="file-tree" size="is-large" class="has-text-grey-light" />
           <p class="has-text-grey mt-2">Select a framework version to explore its standards.</p>
@@ -312,6 +323,12 @@ export default {
   flex: 1;
   padding: 24px 28px;
   overflow-y: auto;
+}
+
+.fw-content-topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
 }
 
 .fw-empty {

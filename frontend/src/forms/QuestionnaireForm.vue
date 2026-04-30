@@ -292,9 +292,9 @@
               type="is-success"
               icon-left="content-save"
               :loading="isSaving"
-              @click="saveDraft"
+              @click="save"
             >
-              Save draft
+              Save
             </b-button>
           </div>
         </b-tab-item>

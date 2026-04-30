@@ -7,6 +7,12 @@ const frameworksRoutes = [
     component: FrameworksView,
     meta: { requiresAuth: true },
   },
+  {
+    path: '/frameworks/upload',
+    name: 'FrameworkUpload',
+    component: () => import('../views/FrameworkUploadView.vue'),
+    meta: { requiresAuth: true },
+  },
 ];
 
 export default frameworksRoutes;

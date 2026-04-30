@@ -239,12 +239,6 @@ async function can_remove_indicator(indicator) {
     return true;
 };
 
-async function create_indicator_data_point(req, res){
-
-}
-
-
-
 
 module.exports = {
     get_indicators,
