@@ -352,11 +352,11 @@ export default {
       }
     },
     applyAiSuggestions: function() {
-      const suggestionMap = new Map(this.aiSuggestions.map(function(s) { return [s.code, s]; }));
-      this.standards.forEach(function(std) {  // Sobreescribir el formulario de materialidad
-        var suggestion = suggestionMap.get(std.code);
-        if (!suggestion) return;
-        if (std.is_mandatory) return;
+      const suggestionMap = new Map(this.aiSuggestions.map(s => [s.code, s]));
+      this.standards.forEach(std => {
+        const suggestion = suggestionMap.get(std.code);
+        if (!suggestion || std.is_mandatory) return;
+        if (!this.localData[std.id]) return;
         this.localData[std.id].is_material = suggestion.is_material;
         if (suggestion.justification) {
           this.localData[std.id].justification = suggestion.justification;
