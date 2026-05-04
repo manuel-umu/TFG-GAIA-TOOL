@@ -6,6 +6,14 @@
         @click="closeMateriality"
       />
       <h1 class="title">Double Materiality Assessment</h1>
+      <b-button
+        type="is-info is-light"
+        icon-left="robot"
+        style="margin-left: auto;"
+        @click="openAiModal"
+      >
+        Sugerir con IA
+      </b-button>
     </div>
 
     <b-loading :is-full-page="false" v-model="isLoading" />
@@ -90,6 +98,99 @@
         </b-button>
       </div>
     </div>
+
+    <!-- Panel de sugerencias de IA -->
+    <b-modal
+      v-model="aiModalActive"
+      has-modal-card
+      trap-focus
+      :can-cancel="false"
+    >
+      <div class="modal-card" style="width: 640px; max-width: 95vw;">
+        <header class="modal-card-head">
+          <p class="modal-card-title">
+            <b-icon icon="robot" style="margin-right: 8px;" />
+            Análisis de Doble Materialidad con IA
+          </p>
+        </header>
+
+        <!-- Formulario -->
+        <section v-if="aiStep === 1" class="modal-card-body">
+          <p class="has-text-grey" style="margin-bottom: 16px; font-size: 0.9rem;">
+            Proporciona información básica sobre la empresa para que la IA sugiera qué estándares ESRS son materiales.
+          </p>
+          <b-field label="Sector *" label-position="on-border">
+            <b-input v-model="aiForm.sector" placeholder="Ej: Manufactura, Tecnología, Agricultura..." />
+          </b-field>
+          <b-field label="Número de empleados *" label-position="on-border">
+            <b-input v-model="aiForm.employees" type="number" min="1" placeholder="Ej: 250" />
+          </b-field>
+          <b-field label="Facturación anual (M€)" label-position="on-border">
+            <b-input v-model="aiForm.revenue" type="number" min="0" step="0.1" placeholder="Ej: 45.5" />
+          </b-field>
+          <b-field label="Descripción de actividad" label-position="on-border">
+            <b-input
+              v-model="aiForm.description"
+              type="textarea"
+              rows="3"
+              placeholder="Describe brevemente la actividad principal de la empresa..."
+            />
+          </b-field>
+        </section>
+
+        <!-- Resultados -->
+        <section v-if="aiStep === 2" class="modal-card-body ai-results">
+          <p class="has-text-grey" style="margin-bottom: 12px; font-size: 0.85rem;">
+            La IA ha evaluado {{ aiSuggestions.length }} estándares. Revisa las sugerencias y pulsa "Aplicar" para rellenar el formulario.
+          </p>
+          <div v-for="s in aiSuggestions" :key="s.code" class="ai-suggestion-row">
+            <div class="ai-suggestion-header">
+              <span class="tag is-dark" style="font-family: monospace; margin-right: 6px;">{{ s.code }}</span>
+              <span class="ai-std-name">{{ s.name }}</span>
+              <span class="tag" :class="s.is_material ? 'is-success is-light' : 'is-light'" style="margin-left: 6px;">
+                {{ s.is_material ? 'Material' : 'No material' }}
+              </span>
+              <!-- Impacto = Empresa afecta al medioambiente/personas. Financiero = Tema afecta a empresa (Doble materialidad) -->
+              <span v-if="s.impact_materiality" class="tag is-warning is-light" style="margin-left: 4px; font-size: 0.72rem;">Impacto</span>  
+              <span v-if="s.financial_materiality" class="tag is-link is-light" style="margin-left: 4px; font-size: 0.72rem;">Financiero</span>
+            </div>
+            <div class="ai-confidence">
+              <span class="has-text-grey" style="font-size: 0.75rem; margin-right: 6px;">Confianza {{ Math.round(s.confidence * 100) }}%</span>
+              <progress
+                class="progress is-small"
+                :class="confidenceClass(s.confidence)"
+                :value="Math.round(s.confidence * 100)"
+                max="100"
+                style="flex: 1; margin-bottom: 0;"
+              />
+            </div>
+            <p v-if="s.justification" class="ai-justification">{{ s.justification }}</p>
+          </div>
+        </section>
+
+        <!-- Footer del formulario -->
+        <footer class="modal-card-foot" style="justify-content: flex-end; gap: 8px;">
+          <template v-if="aiStep === 1">
+            <b-button @click="aiModalActive = false" :disabled="isAiLoading">Cancelar</b-button>
+            <b-button
+              type="is-info"
+              icon-left="auto-fix"
+              :loading="isAiLoading"
+              @click="runAiSuggestion"
+            >
+              Analizar
+            </b-button>
+          </template>
+          <!-- Footer de los resultados -->
+          <template v-if="aiStep === 2">
+            <b-button icon-left="arrow-left" @click="aiStep = 1">Volver</b-button>
+            <b-button type="is-success" icon-left="check" @click="applyAiSuggestions">
+              Aplicar sugerencias
+            </b-button>
+          </template>
+        </footer>
+      </div>
+    </b-modal>
   </section>
 </template>
 
@@ -108,6 +209,16 @@ export default {
       isSaving: false,
       standards: [],
       localData: {},
+      aiModalActive: false,
+      isAiLoading: false,
+      aiSuggestions: [],
+      aiStep: 1,
+      aiForm: {
+        sector: '',
+        employees: null,
+        revenue: null,
+        description: '',
+      },
     };
   },
   computed: {
@@ -209,6 +320,60 @@ export default {
       if (isNaN(d.getTime())) return dateStr;
       return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     },
+    openAiModal: function() {
+      this.aiStep = 1;  // 1-Formulario, 2-Resultados
+      this.aiSuggestions = [];
+      this.aiModalActive = true;
+    },
+    runAiSuggestion: async function() {
+      if (!this.aiForm.sector || this.aiForm.employees == null) {
+        this.$buefy.snackbar.open({ message: 'Sector y empleados son obligatorios.', type: 'is-danger', duration: 4000 });
+        return;
+      }
+      try {
+        this.isAiLoading = true;
+        const payload = {
+          sector: this.aiForm.sector,
+          employees: Number(this.aiForm.employees),
+          revenue: this.aiForm.revenue != null ? Number(this.aiForm.revenue) : undefined,
+          description: this.aiForm.description || undefined,
+        };
+        const response = await axiosInstance.post(`/audits/${this.id_audit}/ai/materiality`, payload);  // backend
+        this.aiSuggestions = response.data.suggestions;
+        this.aiStep = 2;
+      } catch (error) {
+        const msg = error.response && error.response.data && (error.response.data.detail || error.response.data.error)
+          ? (error.response.data.detail || error.response.data.error)
+          : 'Error al conectar con el servicio de IA.';
+        this.$buefy.snackbar.open({ message: msg, type: 'is-danger', duration: 7000 });
+        console.error('[AI] Error:', error);
+      } finally {
+        this.isAiLoading = false;
+      }
+    },
+    applyAiSuggestions: function() {
+      const suggestionMap = new Map(this.aiSuggestions.map(function(s) { return [s.code, s]; }));
+      this.standards.forEach(function(std) {  // Sobreescribir el formulario de materialidad
+        var suggestion = suggestionMap.get(std.code);
+        if (!suggestion) return;
+        if (std.is_mandatory) return;
+        this.localData[std.id].is_material = suggestion.is_material;
+        if (suggestion.justification) {
+          this.localData[std.id].justification = suggestion.justification;
+        }
+      });
+      this.aiModalActive = false;
+      this.$buefy.snackbar.open({ // Notificacion del exito de la aplicacion de las sugerencias
+        message: 'Sugerencias de IA aplicadas. Revisa y guarda cuando estés listo.',
+        type: 'is-info',
+        duration: 5000,
+      });
+    },
+    confidenceClass: function(confidence) {
+      if (confidence >= 0.80) return 'is-success';
+      if (confidence >= 0.60) return 'is-warning';
+      return 'is-danger';
+    },
   },
 };
 </script>
@@ -275,5 +440,46 @@ export default {
 
 .switch-wrapper .b-checkbox.switch {
   margin-right: 0;
+}
+
+.ai-results {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.ai-suggestion-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ai-suggestion-row:last-child {
+  border-bottom: none;
+}
+
+.ai-suggestion-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.ai-std-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.ai-confidence {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.ai-justification {
+  font-size: 0.82rem;
+  color: #666;
+  font-style: italic;
+  margin-top: 4px;
+  margin-bottom: 0;
 }
 </style>

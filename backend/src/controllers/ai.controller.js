@@ -1,20 +1,10 @@
 'use strict';
 
-const { suggestMateriality } = require('../services/ai/materialityService.js');
+const { suggestMateriality } = require('../services/materialityService.js');
 const Audit = require('../models/audit.model.js');
 
-/** IA para sugerir la materialidad de los estandares
- * POST /api/v2/audits/:id/ai/materiality
- *
- * Body (JSON):
- *   sector      {string}  requerido
- *   employees   {number}  requerido
- *   revenue     {number}  opcional  (M€)
- *   description {string}  opcional
- *
- * Respuesta:
- *   { suggestions: [...] }  — array de sugerencias por estandar
- */
+// IA para sugerir la materialidad de los estandares
+
 async function suggest_materiality(req, res) {
     const { id } = req.params;
     const { sector, employees, revenue, description } = req.body;

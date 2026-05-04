@@ -22,7 +22,7 @@
     "mysql2": "^3.4.1",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.7",
-    "sequelize": "^3.30.0",
+    "sequelize": "6.37.7",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
