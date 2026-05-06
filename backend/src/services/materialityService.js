@@ -5,6 +5,7 @@
 const Groq = require('groq-sdk');
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+const MAX_RESPONSE_TOKENS = 3000; 
 const SYSTEM_PROMPT = `Eres un auditor senior experto en sostenibilidad certificado bajo los estándares CSRD (Corporate Sustainability Reporting Directive, EU 2022/2464) y los ESRS (European Sustainability Reporting Standards) elaborados por EFRAG.
 
 ## Tu misión
@@ -70,6 +71,7 @@ Devuelve SOLAMENTE este JSON (sin texto antes ni después, sin bloques de códig
 }
 `;
 
+
 // Evaluar la materialidad
 async function suggestMateriality({ sector, employees, revenue, description }) {
     const userContent = [
@@ -84,27 +86,27 @@ async function suggestMateriality({ sector, employees, revenue, description }) {
 
    try {
         const chatCompletion = await groq.chat.completions.create({
-            "messages": [
+            messages: [
                 { "role": "system", "content": SYSTEM_PROMPT },
                 { "role": "user", "content": userContent }
             ],
-            "model": "llama-3.3-70b-versatile",
-            "temperature": 0.2, // Baja temperatura para mayor rigor tecnico
-            "max_tokens": 3000,
-            "top_p": 1,
-            "stream": false,
-            "response_format": { "type": "json_object" },  // Modo JSON para asegurar que la salida sea la esperada
-            "stop": null
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.2, // Baja temperatura para mayor rigor tecnico
+            max_tokens: MAX_RESPONSE_TOKENS,
+            top_p: 1,
+            stream: false,
+            response_format: { "type": "json_object" },  // Modo JSON para asegurar que la salida sea la esperada
+            stop: null
         });
 
         const content = chatCompletion.choices[0]?.message?.content;
-        if (!content) throw new Error('Groq no devolvió contenido');
+        if (!content) throw new Error('Model didnt work: no content returned');
 
         const parsed = JSON.parse(content);
         return parsed.standards;
 
     } catch (error) {
-        console.error("Error en la llamada a Groq:", error);
+        console.error("Model call failed", error);
         throw error;
     }
 }
