@@ -35,6 +35,8 @@ require('../models/disclosure_requirement.model.js');
 require('../models/data_point.model.js');
 require('../models/audit_standard.model.js');
 require('../models/audit_data_points.model.js');
+require('../models/source_document.model.js');
+require('../models/data_point_source.model.js');
 
 const app = express();
 

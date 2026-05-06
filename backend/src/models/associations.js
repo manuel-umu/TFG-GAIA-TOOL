@@ -16,6 +16,8 @@ const DataPoint = require('./data_point.model.js');
 const DisclosureRequirement = require('./disclosure_requirement.model.js');
 const AuditDataPoint = require('./audit_data_points.model.js');
 const AuditStandard = require('./audit_standard.model.js');
+const SourceDocument = require('./source_document.model.js');
+const DataPointSource = require('./data_point_source.model.js');
 
 
 Process.belongsTo(User, { foreignKey: 'responsible' });
@@ -102,3 +104,28 @@ AuditStandard.belongsTo(User, { foreignKey: 'assessed_by', as: 'assessor' });
 
 Audit.hasMany(AuditStandard, { foreignKey: 'audit_id', as: 'standardAssessments' });
 Standard.hasMany(AuditStandard, { foreignKey: 'standard_id', as: 'auditAssessments' });
+
+// Documentos subidos para extracción IA
+SourceDocument.belongsTo(Audit, { foreignKey: 'audit_id' });
+SourceDocument.belongsTo(User, { foreignKey: 'uploaded_by', as: 'uploader' });
+Audit.hasMany(SourceDocument, { foreignKey: 'audit_id', as: 'sourceDocuments' });
+
+// Trazabilidad de extracciones IA — cada DataPointSource liga un valor a su documento de origen
+DataPointSource.belongsTo(Audit, { foreignKey: 'audit_id' });
+DataPointSource.belongsTo(DataPoint, { foreignKey: 'data_point_id' });
+DataPointSource.belongsTo(SourceDocument, { foreignKey: 'source_document_id', as: 'sourceDocument' });
+SourceDocument.hasMany(DataPointSource, { foreignKey: 'source_document_id', as: 'extractions' });
+
+// Permite navegar desde un AuditDataPoint a sus fuentes documentales (relación lógica por la PK compuesta)
+AuditDataPoint.hasMany(DataPointSource, {
+    foreignKey: 'audit_id',
+    sourceKey: 'audit_id',
+    as: 'sources',
+    constraints: false,
+});
+DataPointSource.belongsTo(AuditDataPoint, {
+    foreignKey: 'audit_id',
+    targetKey: 'audit_id',
+    as: 'auditDataPoint',
+    constraints: false,
+});
