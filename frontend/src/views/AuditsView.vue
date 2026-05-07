@@ -1,6 +1,6 @@
 <template>
   <section class="custom-section">
-    <div v-if="action !== 'evaluate' && action !== 'materiality' && action !== 'questionnaire'">
+    <div v-if="action !== 'evaluate' && action !== 'materiality' && action !== 'questionnaire' && action !== 'extraction'">
       <Header
         title="Audits"
         :perPage="perPage"
@@ -59,6 +59,7 @@
             @materiality="openMateriality"
             @questionnaire="openQuestionnaire"
             @evaluate="evaluate"
+            @extraction="openExtraction"
           />
           <Pagination
             class="custom-pagination"
@@ -95,6 +96,15 @@
         @finished-actions-for-audit="getPendingAudits"
       />
     </div>
+    <div v-else-if="action === 'extraction'">
+      <DocumentExtractionForm
+        :action="action"
+        :id_audit="id_audit"
+        @remove-action="action = ''"
+        @remove-id-audit="id_audit = null"
+        @finished-actions-for-audit="getPendingAudits"
+      />
+    </div>
     <div v-else>
       <MaterialityForm
         :action="action"
@@ -116,6 +126,7 @@ import AuditForm from '@/forms/AuditForm.vue';
 import EvaluationForm from '@/forms/EvaluationForm.vue';
 import MaterialityForm from '@/forms/MaterialityForm.vue';
 import QuestionnaireForm from '@/forms/QuestionnaireForm.vue';
+import DocumentExtractionForm from '@/forms/DocumentExtractionForm.vue';
 
 export default {
   name: 'AuditsView',
@@ -127,6 +138,7 @@ export default {
     EvaluationForm,
     MaterialityForm,
     QuestionnaireForm,
+    DocumentExtractionForm,
   },
   data() {
     return {
@@ -228,21 +240,23 @@ export default {
     },
     rowActionsAllAudits() {
       return [
-        { icon: 'mdi mdi-eye', event: 'show' },
+        { icon: 'mdi mdi-eye', event: 'show', tooltip: 'View details' },
       ]
     },
     rowMyActions() {
       return [
-        { icon: 'mdi mdi-eye', event: 'show' },
-        { 
-          icon: 'mdi mdi-pencil', 
+        { icon: 'mdi mdi-eye', event: 'show', tooltip: 'View details' },
+        {
+          icon: 'mdi mdi-pencil',
           event: 'edit',
+          tooltip: 'Edit',
           disabledCondition: (row) => row.state !== 'Not started',
         },
-        { icon: 'mdi mdi-delete', event: 'remove' },
+        { icon: 'mdi mdi-delete', event: 'remove', tooltip: 'Delete' },
         {
           icon: 'mdi mdi-lock',
           event: 'close',
+          tooltip: 'Close audit',
           disabledCondition: (row) => {
             if (row.state === 'Evaluated') return false;
             if (row.framework_code && row.questionnaire_complete) return false;
@@ -253,21 +267,30 @@ export default {
     },
     rowPendingActions() {
       return [
-        { icon: 'mdi mdi-eye', event: 'show' },
+        { icon: 'mdi mdi-eye', event: 'show', tooltip: 'View details' },
         {
           event: 'materiality',
           icon: 'mdi mdi-clipboard-check-outline',
+          tooltip: 'Double Materiality',
           disabledCondition: (row) => (row.state === 'Closed'),
+        },
+        {
+          event: 'extraction',
+          icon: 'mdi mdi-file-search-outline',
+          tooltip: 'AI DataPoint Extraction',
+          disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || !row.materiality_complete),
         },
         {
           event: 'questionnaire',
           icon: 'mdi mdi-form-textbox',
+          tooltip: 'ESRS Questionnaire',
           disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || !row.materiality_complete),
         },
         {
           event: 'evaluate',
-          disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || row.state === 'Not evaluated' || !row.materiality_complete),
           icon: 'mdi mdi-file-document-edit',
+          tooltip: 'Evaluate',
+          disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || row.state === 'Not evaluated' || !row.materiality_complete),
         },
       ]
     },       
@@ -324,6 +347,10 @@ export default {
     },
     openQuestionnaire: function(row) {
       this.action = 'questionnaire';
+      this.id_audit = row.id;
+    },
+    openExtraction: function(row) {
+      this.action = 'extraction';
       this.id_audit = row.id;
     },
     getAudits: async function() {

@@ -24,18 +24,25 @@
       width="250"
     >
       <template v-slot="props">
-        <b-button
+        <b-tooltip
           v-for="(action, i) in actions"
           :key="i"
           v-if="!action.if || action.if(props.row)"
-          :class="action.icon"
+          :label="action.tooltip || ''"
+          :active="!!action.tooltip"
           type="is-dark"
-          inverted
-          size="is-small"
-          :disabled="action.disabledCondition ? action.disabledCondition(props.row) : false"
-          @click="$emit(action.event, props.row)"
-          style="background-color: unset; font-size:1em;"
-        />
+          position="is-top"
+        >
+          <b-button
+            :class="action.icon"
+            type="is-dark"
+            inverted
+            size="is-small"
+            :disabled="action.disabledCondition ? action.disabledCondition(props.row) : false"
+            @click="$emit(action.event, props.row)"
+            style="background-color: unset; font-size:1em;"
+          />
+        </b-tooltip>
       </template>
     </b-table-column>
   </b-table>

@@ -12,7 +12,7 @@
         style="margin-left: auto;"
         @click="openAiModal"
       >
-        Sugerir con IA
+        Suggest with AI
       </b-button>
     </div>
 
@@ -110,30 +110,30 @@
         <header class="modal-card-head">
           <p class="modal-card-title">
             <b-icon icon="robot" style="margin-right: 8px;" />
-            Análisis de Doble Materialidad con IA
+            Analysis of Double Materiality with AI
           </p>
         </header>
 
         <!-- Formulario -->
         <section v-if="aiStep === 1" class="modal-card-body">
           <p class="has-text-grey" style="margin-bottom: 16px; font-size: 0.9rem;">
-            Proporciona información básica sobre la empresa para que la IA sugiera qué estándares ESRS son materiales.
+            Provide basic information about the company for the AI to suggest which ESRS standards are material.
           </p>
           <b-field label="Sector *" label-position="on-border">
-            <b-input v-model="aiForm.sector" placeholder="Ej: Manufactura, Tecnología, Agricultura..." />
+            <b-input v-model="aiForm.sector" placeholder="Ej: Manufacturing, Technology, Agriculture..." />
           </b-field>
-          <b-field label="Número de empleados *" label-position="on-border">
+          <b-field label="Number of employees *" label-position="on-border">
             <b-input v-model="aiForm.employees" type="number" min="1" placeholder="Ej: 250" />
           </b-field>
-          <b-field label="Facturación anual (M€)" label-position="on-border">
+          <b-field label="Anual revenue (M€)" label-position="on-border">
             <b-input v-model="aiForm.revenue" type="number" min="0" step="0.1" placeholder="Ej: 45.5" />
           </b-field>
-          <b-field label="Descripción de actividad" label-position="on-border">
+          <b-field label="Activity description" label-position="on-border">
             <b-input
               v-model="aiForm.description"
               type="textarea"
               rows="3"
-              placeholder="Describe brevemente la actividad principal de la empresa..."
+              placeholder="Describe shortly the main activity of the company..."
             />
           </b-field>
         </section>
@@ -141,18 +141,18 @@
         <!-- Resultados -->
         <section v-if="aiStep === 2" class="modal-card-body ai-results">
           <p class="has-text-grey" style="margin-bottom: 12px; font-size: 0.85rem;">
-            La IA ha evaluado {{ aiSuggestions.length }} estándares. Revisa las sugerencias y pulsa "Aplicar" para rellenar el formulario.
+            The AI has evaluated {{ aiSuggestions.length }} standards. Review the suggestions and click "Apply" to fill the form.
           </p>
           <div v-for="s in aiSuggestions" :key="s.code" class="ai-suggestion-row">
             <div class="ai-suggestion-header">
               <span class="tag is-dark" style="font-family: monospace; margin-right: 6px;">{{ s.code }}</span>
               <span class="ai-std-name">{{ s.name }}</span>
               <span class="tag" :class="s.is_material ? 'is-success is-light' : 'is-light'" style="margin-left: 6px;">
-                {{ s.is_material ? 'Material' : 'No material' }}
+                {{ s.is_material ? 'Material' : 'Not material' }}
               </span>
               <!-- Impacto = Empresa afecta al medioambiente/personas. Financiero = Tema afecta a empresa (Doble materialidad) -->
-              <span v-if="s.impact_materiality" class="tag is-warning is-light" style="margin-left: 4px; font-size: 0.72rem;">Impacto</span>  
-              <span v-if="s.financial_materiality" class="tag is-link is-light" style="margin-left: 4px; font-size: 0.72rem;">Financiero</span>
+              <span v-if="s.impact_materiality" class="tag is-warning is-light" style="margin-left: 4px; font-size: 0.72rem;">Impact</span>  
+              <span v-if="s.financial_materiality" class="tag is-link is-light" style="margin-left: 4px; font-size: 0.72rem;">Financial</span>
             </div>
             <div class="ai-confidence">
               <span class="has-text-grey" style="font-size: 0.75rem; margin-right: 6px;">Confianza {{ Math.round(s.confidence * 100) }}%</span>
@@ -185,7 +185,7 @@
           <template v-if="aiStep === 2">
             <b-button icon-left="arrow-left" @click="aiStep = 1">Volver</b-button>
             <b-button type="is-success" icon-left="check" @click="applyAiSuggestions">
-              Aplicar sugerencias
+              Apply suggestions
             </b-button>
           </template>
         </footer>

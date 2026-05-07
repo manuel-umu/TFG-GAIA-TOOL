@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const sequelize = require('./sequelize.js');
 const User = require('../models/user.model.js');
 const Organization = require('../models/organization.model.js');
 const Factor = require('../models/factor.model.js');
@@ -12,6 +13,10 @@ const FrameworkVersion = require('../models/framework_version.model.js');
 async function initialize() {
     try{
         console.log('Inicializando initialize');
+
+        // Crear tablas nuevas si no existen (no borra datos existentes)
+        await sequelize.sync({ alter: true });
+        console.log('Base de datos sincronizada.');
         
         // Usuario evaluador de prueba
         let evaluator = await User.findOne({ where: { username: 'ev1' } });
