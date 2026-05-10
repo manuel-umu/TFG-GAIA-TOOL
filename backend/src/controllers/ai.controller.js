@@ -243,7 +243,7 @@ async function delete_document(req, res) {
         await DataPointSource.destroy({ where: { source_document_id: docId } });
         await doc.destroy();
 
-        return res.status(200).json({ message: 'Doument deleted' });
+        return res.status(200).json({ message: 'Document deleted' });
     } catch (error) {
         console.error('Document delete error:', error);
         return res.status(500).json({ error:'Internal server error'});
