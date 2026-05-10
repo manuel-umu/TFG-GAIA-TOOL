@@ -6,7 +6,7 @@
       <b-button class="mdi mdi-keyboard-backspace button-back" @click="closeExtraction" />
       <h1 class="title">DataPoint Extraction with IA</h1>
       <b-button
-        type="is-success is-light"
+        type="is-primary"
         icon-left="file-upload"
         style="margin-left: auto;"
         :loading="isUploading"
@@ -51,18 +51,26 @@
               </b-tag>
             </div>
           </div>
-          <b-button
-            v-if="selectedDocumentId !== doc.id"
-            type="is-info is-light"
-            size="is-small"
-            :disabled="doc.processed_status !== 'completed'"
-            @click="selectedDocumentId = doc.id"
-          >
-            Select
-          </b-button>
-          <b-tag v-else type="is-success" style="cursor: default;">
-            <b-icon icon="check" size="is-small" /> Selected
-          </b-tag>
+          <div style="display: flex; gap: 6px; flex-shrink: 0;">
+            <b-button
+              v-if="selectedDocumentId !== doc.id"
+              type="is-info is-light"
+              size="is-small"
+              :disabled="doc.processed_status !== 'completed'"
+              @click="selectedDocumentId = doc.id"
+            >
+              Select
+            </b-button>
+            <b-button v-else type="is-success" size="is-small" icon-left="check" @click="selectedDocumentId = null">
+              Selected
+            </b-button>
+            <b-button
+              type="is-danger is-light"
+              size="is-small"
+              icon-left="delete"
+              @click="confirmDeleteDocument(doc)"
+            />
+          </div>
         </div>
       </div>
 
@@ -114,22 +122,49 @@
               :key="r.data_point_id"
               class="result-row"
             >
-              <span class="has-text-grey" style="font-size: 0.8rem; font-family: monospace;">{{ r.official_id || r.data_point_id }}</span>
-              <span class="result-value">{{ r.extracted_value }}</span>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span v-if="r.page_hint" class="has-text-grey" style="font-size: 0.75rem;">p.{{ r.page_hint }}</span>
-                <progress
-                  class="progress is-small"
-                  :class="confidenceClass(r.confidence)"
-                  :value="Math.round(r.confidence * 100)"
-                  max="100"
-                  style="width: 60px; margin-bottom: 0;"
-                />
-                <span class="has-text-grey" style="font-size: 0.72rem;">{{ Math.round(r.confidence * 100) }}%</span>
+              <div class="result-header">
+                <span class="tag is-dark is-small result-code" style="font-family: monospace; flex-shrink: 0;">{{ r.official_id || r.data_point_id }}</span>
+                <span class="result-name">{{ r.name || '—' }}</span>
+                <b-button
+                  :type="r.included ? 'is-primary' : 'is-light'"
+                  size="is-small"
+                  :icon-left="r.included ? 'check' : 'plus'"
+                  style="margin-left: auto; flex-shrink: 0;"
+                  @click="includeResult(r)"
+                >
+                  {{ r.included ? 'Marked' : 'Include' }}
+                </b-button>
+              </div>
+              <div class="result-body">
+                <span class="result-value">{{ r.extracted_value }}</span>
+                <div class="result-meta">
+                  <span v-if="r.page_hint" class="has-text-grey" style="font-size: 0.75rem;">p.{{ r.page_hint }}</span>
+                  <progress
+                    class="progress is-small"
+                    :class="confidenceClass(r.confidence)"
+                    :value="Math.round(r.confidence * 100)"
+                    max="100"
+                    style="width: 60px; margin-bottom: 0;"
+                  />
+                  <span class="has-text-grey" style="font-size: 0.72rem;">{{ Math.round(r.confidence * 100) }}%</span>
+                </div>
               </div>
             </div>
+
+            <!-- Botón finalizar -->
+            <div v-if="extractionResults[std.id] && extractionResults[std.id].results.length > 0" style="margin-top: 12px; display: flex; justify-content: flex-end;">
+              <b-button
+                type="is-primary"
+                icon-left="content-save"
+                :loading="!!finalizingStandards[std.id]"
+                :disabled="false"
+                @click="finalizeStandard(std)"
+              >
+                Finalize
+              </b-button>
+            </div>
           </div>
-         
+
         </div>
       </div>
     </div>
@@ -156,6 +191,7 @@ export default {
       materialStandards: [],
       selectedDocumentId: null,
       loadingStandards: {},
+      finalizingStandards: {},
       extractionResults: {},
     };
   },
@@ -224,7 +260,6 @@ export default {
         });
         return;
       }
-
       try {
         this.isUploading = true;
         const formData = new FormData();
@@ -263,7 +298,7 @@ export default {
         );
         this.$set(this.extractionResults, standard.id, {
           extracted: response.data.extracted,
-          results: response.data.results || [],
+          results: (response.data.results || []).map(r => ({ ...r, included: false })),
         });
         if (response.data.extracted > 0) {
           this.$buefy.snackbar.open({
@@ -290,6 +325,73 @@ export default {
       }
     },
 
+    includeResult: function(r) {
+      this.$set(r, 'included', !r.included);
+    },
+
+    finalizeStandard: async function(standard) {
+      const results = this.extractionResults[standard.id];
+      if (!results) return;
+      const toSave = results.results.filter(r => r.included);
+
+      if (toSave.length === 0) {
+        this.$buefy.snackbar.open({ message: 'No DataPoints marked — nothing saved.', type: 'is-warning', duration: 3000 });
+        return;
+      }
+
+      this.$set(this.finalizingStandards, standard.id, true);
+      try {
+        await axiosInstance.post(`/audits/${this.id_audit}/questionnaire`, {
+          data_points: toSave.map(r => ({
+            data_point_id: r.data_point_id,
+            value_text:    r.extracted_value,
+            is_applicable: true,
+            status:        'completed',
+          })),
+        });
+        this.$buefy.snackbar.open({
+          message: `${toSave.length} DataPoint(s) saved to questionnaire.`,
+          type: 'is-success',
+          duration: 3000,
+        });
+        this.closeExtraction();
+      } catch (error) {
+        const msg =
+          error.response?.data?.detail ||
+          error.response?.data?.error ||
+          'Error saving DataPoints.';
+        this.$buefy.snackbar.open({ message: msg, type: 'is-danger', duration: 5000 });
+        console.error('[FINALIZE]', error);
+      } finally {
+        this.$set(this.finalizingStandards, standard.id, false);
+      }
+    },
+
+    confirmDeleteDocument: function(doc) {
+      this.$buefy.dialog.confirm({
+        title: 'Delete document',
+        message: `Are you sure you want to delete <strong>${doc.original_name}</strong>? This will also remove any AI extractions linked to it.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        type: 'is-danger',
+        hasIcon: true,
+        onConfirm: () => this.deleteDocument(doc),
+      });
+    },
+
+    deleteDocument: async function(doc) {
+      try {
+        await axiosInstance.delete(`/audits/${this.id_audit}/documents/${doc.id}`);
+        this.documents = this.documents.filter(d => d.id !== doc.id);
+        if (this.selectedDocumentId === doc.id) this.selectedDocumentId = null;
+        this.$buefy.snackbar.open({ message: `"${doc.original_name}" deleted.`, type: 'is-success', duration: 3000 });
+      } catch (error) {
+        const msg = error.response?.data?.error || 'Error deleting document.';
+        this.$buefy.snackbar.open({ message: msg, type: 'is-danger', duration: 5000 });
+        console.error('[DELETE_DOC]', error);
+      }
+    },
+
     closeExtraction: function() {
       this.$emit('remove-action');
       this.$emit('remove-id-audit');
@@ -310,6 +412,11 @@ export default {
 </script>
 
 <style scoped>
+/* Spinner visible en botones de color claro */
+.standard-box .button.is-loading::after {
+  border-color: transparent transparent #1976d2 #1976d2 !important;
+}
+
 .button-back {
   margin-right: 20px;
   color: #adb987;
@@ -373,16 +480,49 @@ export default {
   border-top: 1px solid #f0f0f0;
 }
 .result-row {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.result-row:last-child {
+  border-bottom: none;
+}
+.result-header {
   display: flex;
   align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.result-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #363636;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.result-code {
+  flex-shrink: 0;
+}
+.result-body {
+  display: flex;
+  align-items: flex-start;
   gap: 10px;
-  padding: 4px 0;
-  border-bottom: 1px solid #f9f9f9;
   flex-wrap: wrap;
 }
 .result-value {
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   flex: 1;
-  color: #333;
+  color: #555;
+  line-height: 1.4;
+}
+.result-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 </style>

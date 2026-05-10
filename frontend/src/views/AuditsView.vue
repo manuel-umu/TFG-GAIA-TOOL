@@ -59,7 +59,6 @@
             @materiality="openMateriality"
             @questionnaire="openQuestionnaire"
             @evaluate="evaluate"
-            @extraction="openExtraction"
           />
           <Pagination
             class="custom-pagination"
@@ -94,6 +93,7 @@
         @remove-action="action = ''"
         @remove-id-audit="id_audit = null"
         @finished-actions-for-audit="getPendingAudits"
+        @open-extraction="action = 'extraction'"
       />
     </div>
     <div v-else-if="action === 'extraction'">
@@ -275,12 +275,6 @@ export default {
           disabledCondition: (row) => (row.state === 'Closed'),
         },
         {
-          event: 'extraction',
-          icon: 'mdi mdi-file-search-outline',
-          tooltip: 'AI DataPoint Extraction',
-          disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || !row.materiality_complete),
-        },
-        {
           event: 'questionnaire',
           icon: 'mdi mdi-form-textbox',
           tooltip: 'ESRS Questionnaire',
@@ -347,10 +341,6 @@ export default {
     },
     openQuestionnaire: function(row) {
       this.action = 'questionnaire';
-      this.id_audit = row.id;
-    },
-    openExtraction: function(row) {
-      this.action = 'extraction';
       this.id_audit = row.id;
     },
     getAudits: async function() {

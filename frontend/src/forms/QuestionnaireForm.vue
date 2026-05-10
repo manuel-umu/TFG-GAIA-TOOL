@@ -9,6 +9,14 @@
       <h1 class="title">ESRS Questionnaire</h1>
       <div class="header-actions">
         <b-button
+          type="is-info is-light"
+          icon-left="robot"
+          style="margin-right: 8px;"
+          @click="$emit('open-extraction')"
+        >
+          Complete with AI
+        </b-button>
+        <b-button
           type="is-success"
           icon-left="content-save"
           :loading="isSaving"
@@ -139,7 +147,6 @@
                 class="dp-input-area"
                 :class="{ 'dp-disabled': localData[dp.id] && !localData[dp.id].is_applicable }"
               >
-                <!-- boolean -->
                 <template v-if="dp.data_type === 'boolean'">
                   <b-field label="Value" label-position="on-border">
                     <b-switch
@@ -288,6 +295,14 @@
 
           <!-- Botón guardar al pie del tab también -->
           <div class="save-footer">
+            <b-button
+              type="is-info is-light"
+              icon-left="robot"
+              style="margin-right: 8px;"
+              @click="$emit('open-extraction')"
+            >
+              Complete with AI
+            </b-button>
             <b-button
               type="is-success"
               icon-left="content-save"

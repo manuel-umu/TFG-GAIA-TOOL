@@ -19,6 +19,8 @@ router.post('/audits/:id/documents', checkUser(), upload.single('document'), aiC
 
 router.get('/audits/:id/documents', checkUser(), aiController.list_documents);
 
+router.delete('/audits/:id/documents/:docId', checkUser(), aiController.delete_document);
+
 router.post('/audits/:id/ai/extract/:standardId', checkUser(), aiController.extract_datapoints);
 
 module.exports = router;

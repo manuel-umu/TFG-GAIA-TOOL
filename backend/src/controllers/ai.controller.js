@@ -211,22 +211,42 @@ async function extract_datapoints(req, res) {
             }))
         );
 
-        const officialIdMap = new Map(dataPoints.map(dp => [dp.id, dp.official_id]));
-
+        const dpMetaMap = new Map(dataPoints.map(dp => [dp.id, { official_id: dp.official_id, name: dp.name }]));
         return res.status(200).json({
             extracted: extractions.length,
             standard:  { id: standard.id, code: standard.code, name: standard.name },
-            results:   extractions.map(e => ({
-                data_point_id:   e.data_point_id,
-                official_id:     officialIdMap.get(e.data_point_id) || null,
-                extracted_value: e.extracted_value,
-                confidence:      e.confidence,
-                page_hint:       e.page_hint || null,
-            })),
+            results:   extractions.map(e => {
+                const meta = dpMetaMap.get(e.data_point_id) || {};
+                return {
+                    data_point_id:   e.data_point_id,
+                    official_id:     meta.official_id || null,
+                    name:            meta.name || null,
+                    extracted_value: e.extracted_value,
+                    confidence:      e.confidence,
+                    page_hint:       e.page_hint || null,
+                };
+            }),
         });
     } catch (error) {
         console.error('DataPoint extraction error:', error);
         return res.status(500).json({ error: 'Service error', detail: error.message });
+    }
+}
+
+// Eliminar un documento subido y sus fuentes de extraccion
+async function delete_document(req, res) {
+    const { id, docId } = req.params;
+    try {
+        const doc = await SourceDocument.findOne({ where: { id: docId, audit_id: id } });
+        if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+        await DataPointSource.destroy({ where: { source_document_id: docId } });
+        await doc.destroy();
+
+        return res.status(200).json({ message: 'Doument deleted' });
+    } catch (error) {
+        console.error('Document delete error:', error);
+        return res.status(500).json({ error:'Internal server error'});
     }
 }
 
@@ -243,4 +263,4 @@ async function extractTextFromFile(buffer, mimetype) {
     }
 }
 
-module.exports = { suggest_materiality, upload_document, list_documents, extract_datapoints };
+module.exports = { suggest_materiality, upload_document, list_documents, extract_datapoints, delete_document };
