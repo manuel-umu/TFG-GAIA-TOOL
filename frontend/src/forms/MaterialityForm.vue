@@ -89,7 +89,7 @@
 
       <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
         <b-button
-          type="is-success"
+          class="btn-app-green"
           icon-left="content-save"
           :loading="isSaving"
           @click="saveMateriality"
@@ -173,12 +173,12 @@
           <template v-if="aiStep === 1">
             <b-button @click="aiModalActive = false" :disabled="isAiLoading">Cancelar</b-button>
             <b-button
-              type="is-info"
+              class="btn-app-green"
               icon-left="auto-fix"
               :loading="isAiLoading"
               @click="runAiSuggestion"
             >
-              Analizar
+              Analize
             </b-button>
           </template>
           <!-- Footer de los resultados -->
@@ -302,14 +302,8 @@ export default {
       this.$emit('remove-id-audit');
     },
     // Colores para cada enfoque de los estandares 
-    categoryTagClass: function(category) {
-      switch (category) {
-        case 'Environmental': return 'is-success';
-        case 'Social': return 'is-info';
-        case 'Governance': return 'is-warning';
-        case 'General': return 'is-light';
-        default: return 'is-light';
-      }
+    categoryTagClass: function() {
+      return 'category-tag-green';
     },
     hasPreviousAssessment: function(standard) {
       return !!(standard && standard.assessment && standard.assessment.assessed_at);
@@ -379,6 +373,19 @@ export default {
 </script>
 
 <style scoped>
+.btn-app-green {
+  background-color: #adb987;
+  border-color: #adb987;
+  color: #fff;
+}
+
+.btn-app-green:hover,
+.btn-app-green:focus {
+  background-color: #9aa876;
+  border-color: #9aa876;
+  color: #fff;
+}
+
 .button-back {
   margin-right: 20px;
   color: #adb987;
@@ -395,6 +402,11 @@ export default {
 .category-tag {
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.category-tag-green {
+  background-color: #adb987 !important;
+  color: #fff !important;
 }
 
 .standard-box {

@@ -17,7 +17,7 @@
           Complete with AI
         </b-button>
         <b-button
-          type="is-success"
+          class="btn-app-green"
           icon-left="content-save"
           :loading="isSaving"
           @click="save"
@@ -304,7 +304,7 @@
               Complete with AI
             </b-button>
             <b-button
-              type="is-success"
+              class="btn-app-green"
               icon-left="content-save"
               :loading="isSaving"
               @click="save"
@@ -566,12 +566,7 @@ export default {
   display: flex;
   align-items: center;
   margin-bottom: 24px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #fff;
   padding: 12px 0 12px 0;
-  border-bottom: 1px solid #e8e8e8;
 }
 
 .button-back {
@@ -796,6 +791,20 @@ export default {
 
 .evidence-field {
   margin-top: 6px;
+}
+
+/* Botón Save con el verde de la app */
+.btn-app-green {
+  background-color: #adb987;
+  border-color: #adb987;
+  color: #fff;
+}
+
+.btn-app-green:hover,
+.btn-app-green:focus {
+  background-color: #9aa876;
+  border-color: #9aa876;
+  color: #fff;
 }
 
 /* Footer guardar */

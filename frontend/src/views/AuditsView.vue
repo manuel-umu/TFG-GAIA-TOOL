@@ -100,9 +100,7 @@
       <DocumentExtractionForm
         :action="action"
         :id_audit="id_audit"
-        @remove-action="action = ''"
-        @remove-id-audit="id_audit = null"
-        @finished-actions-for-audit="getPendingAudits"
+        @back-to-questionnaire="action = 'questionnaire'"
       />
     </div>
     <div v-else>

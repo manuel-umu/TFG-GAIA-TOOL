@@ -393,8 +393,7 @@ export default {
     },
 
     closeExtraction: function() {
-      this.$emit('remove-action');
-      this.$emit('remove-id-audit');
+      this.$emit('back-to-questionnaire');
     },
 
     fileIcon: function(format) {
