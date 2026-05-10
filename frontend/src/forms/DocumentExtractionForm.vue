@@ -99,7 +99,36 @@
               Extract
             </b-button>
           </div>
+           <!-- Resultados -->
+          <div v-if="extractionResults[std.id]" class="extraction-result">
+            <b-tag
+              :type="extractionResults[std.id].extracted > 0 ? 'is-success is-light' : 'is-warning is-light'"
+              style="margin-top: 8px;"
+            >
+              <b-icon icon="check-circle" size="is-small" style="margin-right: 4px;" />
+              {{ extractionResults[std.id].extracted }} DataPoints extracted
+            </b-tag>
 
+            <div
+              v-for="r in extractionResults[std.id].results"
+              :key="r.data_point_id"
+              class="result-row"
+            >
+              <span class="has-text-grey" style="font-size: 0.8rem; font-family: monospace;">{{ r.official_id || r.data_point_id }}</span>
+              <span class="result-value">{{ r.extracted_value }}</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span v-if="r.page_hint" class="has-text-grey" style="font-size: 0.75rem;">p.{{ r.page_hint }}</span>
+                <progress
+                  class="progress is-small"
+                  :class="confidenceClass(r.confidence)"
+                  :value="Math.round(r.confidence * 100)"
+                  max="100"
+                  style="width: 60px; margin-bottom: 0;"
+                />
+                <span class="has-text-grey" style="font-size: 0.72rem;">{{ Math.round(r.confidence * 100) }}%</span>
+              </div>
+            </div>
+          </div>
          
         </div>
       </div>

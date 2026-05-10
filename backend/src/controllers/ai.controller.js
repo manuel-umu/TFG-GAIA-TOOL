@@ -211,11 +211,14 @@ async function extract_datapoints(req, res) {
             }))
         );
 
+        const officialIdMap = new Map(dataPoints.map(dp => [dp.id, dp.official_id]));
+
         return res.status(200).json({
             extracted: extractions.length,
             standard:  { id: standard.id, code: standard.code, name: standard.name },
             results:   extractions.map(e => ({
                 data_point_id:   e.data_point_id,
+                official_id:     officialIdMap.get(e.data_point_id) || null,
                 extracted_value: e.extracted_value,
                 confidence:      e.confidence,
                 page_hint:       e.page_hint || null,
