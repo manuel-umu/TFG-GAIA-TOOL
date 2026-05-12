@@ -2,9 +2,11 @@
 
 // Servicio de IA para sugerir la materialidad de los estandares ESRS bajo CSRD
 
-const Groq = require('groq-sdk');
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
+const OpenAI = require('openai');
+const client = new OpenAI({
+  baseURL: process.env.URL_API,
+  apiKey: process.env.API_KEY, 
+});
 const MAX_RESPONSE_TOKENS = 3000; 
 const SYSTEM_PROMPT = `Eres un auditor senior experto en sostenibilidad certificado bajo los estándares CSRD (Corporate Sustainability Reporting Directive, EU 2022/2464) y los ESRS (European Sustainability Reporting Standards) elaborados por EFRAG.
 
@@ -85,20 +87,17 @@ async function suggestMateriality({ sector, employees, revenue, description }) {
     ].filter(Boolean).join('\n');
 
    try {
-        const chatCompletion = await groq.chat.completions.create({
+        const chatCompletion = await client.chat.completions.create({
             messages: [
                 { "role": "system", "content": SYSTEM_PROMPT },
                 { "role": "user", "content": userContent }
             ],
-            model: "llama-3.3-70b-versatile",
-            temperature: 0.2, // Baja temperatura para mayor rigor tecnico
+            model: "gpt-oss",
+            temperature: 0.2,
             max_tokens: MAX_RESPONSE_TOKENS,
-            top_p: 1,
-            stream: false,
-            response_format: { "type": "json_object" },  // Modo JSON para asegurar que la salida sea la esperada
-            stop: null
         });
 
+        console.log("RAW:", JSON.stringify(chatCompletion, null, 2));
         const content = chatCompletion.choices[0]?.message?.content;
         if (!content) throw new Error('Model didnt work: no content returned');
 

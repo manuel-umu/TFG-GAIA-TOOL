@@ -1,11 +1,15 @@
 'use strict';
 
-const Groq = require('groq-sdk');
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const OpenAI = require('openai');
+const client = new OpenAI({
+  baseURL: process.env.URL_API,
+  apiKey: process.env.API_KEY, 
+});
+const MAX_TOKENS = 4000;
+const TEMPERATURE = 0.1;
+const MAX_DOC_CHARS = 6000;
+const BATCH_SIZE = 10;
 
-// Documento de 50 paginas aprox (groq tiene limite de contexto de 125k tokens)
-const MAX_DOCUMENT_CHARS = 100_000;
-const MAX_RESPONSE_TOKENS = 12_000;
 const SYSTEM_PROMPT = `Eres un extractor de datos de sostenibilidad especializado en los estándares ESRS \
 del marco CSRD (Corporate Sustainability Reporting Directive, EU 2022/2464).
 
@@ -41,9 +45,11 @@ Para cada Data Point de la lista:
 Devuelve EXCLUSIVAMENTE el JSON especificado. Sin texto antes ni después, sin bloques markdown.`;
 
 async function extractDataPoints({ documentText, dataPoints, standardCode, standardName }) {
-    const docText = documentText.length > MAX_DOCUMENT_CHARS
-        ? documentText.slice(0, MAX_DOCUMENT_CHARS) + '\n\n[...documento truncado por longitud...]'
+    const docText = documentText.length > MAX_DOC_CHARS
+        ? documentText.slice(0, MAX_DOC_CHARS) + '\n\n[...documento truncado...]'
         : documentText;
+
+    console.log(`documentText: ${documentText.length} chars → ${docText.length} tras truncar | dataPoints: ${dataPoints.length} en ${Math.ceil(dataPoints.length / BATCH_SIZE)} lotes`);
 
     const dataPointList = dataPoints.map(dp => ({
         id: dp.id,
@@ -52,7 +58,12 @@ async function extractDataPoints({ documentText, dataPoints, standardCode, stand
         data_type: dp.data_type || 'narrative',
     }));
 
-    const userContent = `Estandar ESRS: ${standardCode} – ${standardName}
+    const allExtractions = [];
+    for (let i = 0; i < dataPointList.length; i += BATCH_SIZE) {
+        const batch = dataPointList.slice(i, i + BATCH_SIZE);
+        console.log(`Lote ${Math.floor(i / BATCH_SIZE) + 1}: data points ${i + 1}-${i + batch.length}`);
+
+        const userContent = `Estandar ESRS: ${standardCode} – ${standardName}
 
 ## Documento a analizar
 ---
@@ -60,7 +71,7 @@ ${docText}
 ---
 
 ## Data Points a extraer
-${JSON.stringify(dataPointList, null, 2)}
+${JSON.stringify(batch, null, 2)}
 
 ## Formato de respuesta requerido
 Devuelve SOLO este JSON:
@@ -76,33 +87,43 @@ Devuelve SOLO este JSON:
     }
   ]
 }`;
-    try {
-        const chatCompletion = await groq.chat.completions.create({
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user',   content: userContent },
-            ],
-            model: 'llama-3.3-70b-versatile',
-            temperature: 0.1, // con 0.1 solo copia lo que ve, no inventa
-            max_tokens: MAX_RESPONSE_TOKENS,
-            response_format: { type: 'json_object' },
-            stream: false,
-        });
 
-        const content = chatCompletion.choices[0]?.message?.content;
-        if (!content) throw new Error('Model didnt work: no content returned');
+        try {
+            const chatCompletion = await call({
+                messages: [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'user',   content: userContent },
+                ],
+            });
 
-        const parsed = JSON.parse(content);
-        const extractions = parsed.extractions;
-        if (!Array.isArray(extractions)) {
-                throw new Error('Model response format error: "extractions" array is missing');
+            const content = chatCompletion.choices[0]?.message?.content;
+            if (!content) {
+                console.warn(`Lote ${Math.floor(i / BATCH_SIZE) + 1}: sin respuesta, se omite`);
+                continue;
+            }
+
+            const parsed = JSON.parse(content);
+            if (!Array.isArray(parsed.extractions)) continue;
+            allExtractions.push(...parsed.extractions);
+        } catch (error) {
+            console.error(`Lote ${Math.floor(i / BATCH_SIZE) + 1} falló:`, error.message);
         }
-        // Devolver solo las que la IA encontro con confianza suficiente
-        return extractions.filter(e => e.found === true && e.confidence >= 0.50);
-    } catch (error) {
-        console.error("Model call failed", error);
-        throw error;
-    }    
+    }
+
+    return allExtractions.filter(e => e.found === true && e.confidence >= 0.50);
+}
+
+async function call({ messages }) {
+    console.log("Calling model to extract data points...");
+    const response = await client.chat.completions.create({
+        messages,
+        model: 'gpt-oss',
+        temperature: TEMPERATURE,
+        max_tokens: MAX_TOKENS,
+    });
+    const u = response.usage;
+    console.log(`Tokens — prompt: ${u?.prompt_tokens}, completion: ${u?.completion_tokens}, total: ${u?.total_tokens}`);
+    return response;
 }
 
 module.exports = { extractDataPoints };
