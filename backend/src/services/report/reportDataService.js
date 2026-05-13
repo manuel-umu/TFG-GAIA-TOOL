@@ -32,22 +32,28 @@ async function getReportData(auditId) {
             : null,
     ]);
 
-    const framework = await Framework.findByPk(frameworkVersion.framework_id);
+    const framework = frameworkVersion
+        ? await Framework.findByPk(frameworkVersion.framework_id)
+        : null;
 
     // Standards de esa version
-    const standards = await Standard.findAll({
+    const standards = frameworkVersion
+        ? await Standard.findAll({
               where: { framework_version_id: frameworkVersion.id },
               order: [['sort_order', 'ASC']],
-          });
+          })
+        : [];
     const standardIds = standards.map(s => s.id);
 
     // Evaluacion de materialidad
-    const assessments = await AuditStandard.findAll({ where: { audit_id: id } });
+    const assessments = standardIds.length
+        ? await AuditStandard.findAll({ where: { audit_id: id } })
+        : [];
     const assessmentMap = new Map(assessments.map(a => [a.standard_id, a]));
 
     // Standards con su evaluacion (incluso los no evaluados)
     const materialityStandards = standards.map(s => {
-        const a = assessmentMap.get(s.id);
+        const a = assessmentMap.get(s.id) || null;
         return {
             id: s.id,
             code: s.code,
@@ -80,16 +86,20 @@ async function getReportData(auditId) {
         });
         const drIds = disclosureRequirements.map(dr => dr.id);
 
-        const dataPoints = await DataPoint.findAll({
+        const dataPoints = drIds.length
+            ? await DataPoint.findAll({
                   where: { disclosure_requirement_id: { [Op.in]: drIds } },
                   order: [['id', 'ASC']],
-              });
+              })
+            : [];
         const dpIds = dataPoints.map(dp => dp.id);
-
+        
         //Evaluacion de los datapoints
-        const auditDatapoints = await AuditDatapoints.findAll({
+        const auditDatapoints = dpIds.length
+            ? await AuditDatapoints.findAll({
                   where: { audit_id: id, data_point_id: { [Op.in]: dpIds } },
-              });
+              })
+            : [];
         const responseMap = new Map(auditDatapoints.map(r => [r.data_point_id, r]));
 
         // Mapa <DR, [Datapoints de ese DR con su respuesta]>
@@ -98,7 +108,7 @@ async function getReportData(auditId) {
             if (!dpsByDrId.has(dp.disclosure_requirement_id)) {
                 dpsByDrId.set(dp.disclosure_requirement_id, []);
             }
-            const saved = responseMap.get(dp.id);
+            const saved = responseMap.get(dp.id) || null;
             dpsByDrId.get(dp.disclosure_requirement_id).push({
                 id: dp.id,
                 official_id: dp.official_id,
@@ -107,14 +117,14 @@ async function getReportData(auditId) {
                 is_voluntary: dp.is_voluntary,
                 is_conditional: dp.is_conditional,
                 paragraph_ref: dp.paragraph_ref,
-                response: {
+                response: saved ? {
                     value_text: saved.value_text,
-                    value_numeric: saved.value_numeric,
+                    value_numeric: saved.value_numeric != null ? Number(saved.value_numeric) : null,
                     is_applicable: saved.is_applicable,
                     evidence_reference: saved.evidence_reference,
                     status: saved.status,
                     updated_at: saved.updated_at,
-                },
+                } : null,
             });
         }
 
@@ -138,8 +148,8 @@ async function getReportData(auditId) {
         questionnaireStandards = standards
             .filter(s => materialStandardIds.includes(s.id))
             .map(s => {
-                const drs = (drsByStandardId.get(s.id)).map(dr => {
-                    const validated = (dr.data_points).filter(isValidated);
+                const drs = (drsByStandardId.get(s.id) || []).map(dr => {
+                    const validated = (dr.data_points || []).filter(isValidated);
                     return { ...dr, validated_data_points: validated };
                 });
                 return {
@@ -151,7 +161,6 @@ async function getReportData(auditId) {
                 };
             });
     }
-
     return {
         audit: {
             id: audit.id,
@@ -162,7 +171,7 @@ async function getReportData(auditId) {
             frequency: audit.frequency,
             state: audit.state,
         },
-        organization: {
+        organization: organization ? {
             id: organization.id,
             name: organization.name,
             description: organization.description,
@@ -170,22 +179,23 @@ async function getReportData(auditId) {
             sector: organization.sector,
             rangeEmployees: organization.rangeEmployees,
             website: organization.website,
-        },
-        auditor: { id: auditor.id, name: auditor.name, email: auditor.email } ,
-        manager: { id: manager.id, name: manager.name, email: manager.email },
-        framework: {
+        } : null,
+        auditor: auditor ? { id: auditor.id, name: auditor.name, email: auditor.email } : null,
+        manager: manager ? { id: manager.id, name: manager.name, email: manager.email } : null,
+        framework: framework ? {
             id: framework.id,
             code: framework.code,
             name: framework.name,
-        },
-        frameworkVersion: {
+        } : null,
+        frameworkVersion: frameworkVersion ? {
             id: frameworkVersion.id,
             version_code: frameworkVersion.version_code,
             version_label: frameworkVersion.version_label,
             effective_date: frameworkVersion.effective_date,
-        },
+        } : null,
         materiality: { standards: materialityStandards },
         questionnaire: { standards: questionnaireStandards },
+        generatedAt: new Date(),
     };
 }
 

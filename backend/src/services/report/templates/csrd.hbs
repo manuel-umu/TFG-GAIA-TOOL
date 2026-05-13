@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CSRD Sustainability Report</title>
+<style>{{{_styles}}}</style>
+</head>
+<body>
+
+<h1 class="title">CSRD COMPLIANCE REPORT</h1>
+
+{{!-- SECTION 1 — Audit Information --}}
+<h2 class="section">1. Audit Information</h2>
+<ul class="info-list">
+    <li><b>Name:</b> {{audit.name}}</li>
+    {{#if audit.description}}<li><b>Description:</b> {{audit.description}}</li>{{/if}}
+    <li><b>Organization:</b> {{organization.name}}</li>
+    <li><b>Auditor:</b> {{auditor.name}}</li>
+    <li><b>Manager:</b> {{manager.name}}</li>
+    <li><b>Framework:</b> {{framework.code}}</li>
+    <li><b>Period:</b> {{formatDate audit.init_date}} &rarr; {{formatDate audit.end_date}}</li>
+</ul>
+
+{{!-- SECTION 2 — Double Materiality --}}
+<h2 class="section">2. Double Materiality Assessment</h2>
+<table class="report-table">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Standard</th>
+            <th>Category</th>
+            <th>Mandatory</th>
+            <th>Materiality</th>
+            <th>Justification</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each materiality.standards as |s|}}
+        <tr>
+            <td>{{s.code}}</td>
+            <td>{{s.name}}</td>
+            <td>{{s.category}}</td>
+            <td>{{yesNo s.is_mandatory}}</td>
+            <td>{{#if s.assessment}}{{materialLabel s.assessment.is_material}}{{else}}-{{/if}}</td>
+            <td>{{#if s.assessment.justification}}{{s.assessment.justification}}{{else}}-{{/if}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+
+{{!-- SECTION 3 — DataPoints --}}
+<h2 class="section">3. CSRD DataPoints</h2>
+{{#each questionnaire.standards as |std|}}
+    {{#if std.has_validated_dps}}
+        <h3>{{std.code}} &mdash; {{std.name}}</h3>
+        {{#each std.disclosure_requirements as |dr|}}
+            {{#if dr.validated_data_points.length}}
+                <p class="dr-heading">{{dr.code}} &mdash; {{dr.name}}</p>
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>DataPoint</th>
+                            <th>Type</th>
+                            <th>Value</th>
+                            <th>Evidence</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each dr.validated_data_points as |dp|}}
+                        <tr>
+                            <td>{{dp.official_id}}</td>
+                            <td>{{dp.name}}</td>
+                            <td>{{dp.data_type}}</td>
+                            <td>{{formatDataPointValue dp.response dp.data_type}}</td>
+                            <td>{{#if dp.response.evidence_reference}}{{dp.response.evidence_reference}}{{else}}-{{/if}}</td>
+                            <td>{{dp.response.status}}</td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            {{/if}}
+        {{/each}}
+    {{/if}}
+{{/each}}
+
+</body>
+</html>

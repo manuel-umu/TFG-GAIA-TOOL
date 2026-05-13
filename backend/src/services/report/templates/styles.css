@@ -1,0 +1,56 @@
+@page {
+    size: A4;
+    margin: 20mm 18mm;
+}
+
+body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+}
+
+.title {
+    font-size: 20pt;
+    color: #98A869;
+    border-bottom: 1px solid #1a1a1a;
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+}
+
+.section {
+    font-size: 14pt;
+    margin-top: 24px;
+}
+
+.info-list {
+    list-style: none;
+    padding: 0;
+}
+
+.info-list li {
+    padding: 3px 0;
+}
+
+.dr-heading {
+    font-style: italic;
+    margin: 12px 0 4px 0;
+}
+
+table.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 20px 0;
+    font-size: 9pt;
+}
+
+table.report-table th,
+table.report-table td {
+    border: 1px solid #999;
+    padding: 5px 6px;
+    text-align: left;
+    vertical-align: top;
+}
+
+table.report-table thead th {
+    background: #98A869;
+}
