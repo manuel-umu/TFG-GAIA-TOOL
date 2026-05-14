@@ -141,8 +141,11 @@ async function getReportData(auditId) {
                 data_points: dpsByDrId.get(dr.id) || [],
             });
         }
-        // TEMPORAL
-        const isValidated = true;
+        // Funcion auxiliar para filtrar solo los datapoints aplicables, completados o validados
+        const isValidated = (dp) =>
+            dp.response &&
+            dp.response.is_applicable === true &&
+            (dp.response.status === 'completed' || dp.response.status === 'validated');
 
         // Cuestionario final con solo los standards materiales, sus DRs y DP con respuestas
         questionnaireStandards = standards

@@ -282,7 +282,7 @@ export default {
           event: 'evaluate',
           icon: 'mdi mdi-file-document-edit',
           tooltip: 'Evaluate',
-          disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || row.state === 'Not evaluated' || !row.materiality_complete),
+          disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || row.state === 'Not evaluated'),
         },
       ]
     },       

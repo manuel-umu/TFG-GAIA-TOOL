@@ -16,6 +16,7 @@ const routesMateriality = require("../routes/materiality.router.js");
 const routesQuestionnaire = require("../routes/questionnaire.router.js");
 const routesFramework = require("../routes/framework.router.js");
 const routesAI = require("../routes/ai.router.js");
+const routesReport = require("../routes/report.router.js");
 
 require('../models/user.model.js');
 require('../models/organization.model.js');
@@ -67,6 +68,7 @@ app.use("/api/v2", routesMateriality);
 app.use("/api/v2", routesQuestionnaire);
 app.use("/api/v2", routesFramework);
 app.use("/api/v2", routesAI);
+app.use("/api/v2", routesReport);
 
 admin.createAdminUser();
 inicial.initialize();

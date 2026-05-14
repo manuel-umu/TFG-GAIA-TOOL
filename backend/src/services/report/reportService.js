@@ -9,50 +9,58 @@ const TEMPLATES_DIR = path.join(__dirname, 'templates');
 
 let _browser = null;
 
+// Helper para formatear fechas como DD/MM/YYYY
+Handlebars.registerHelper('formatDate', (value) => {
+    if (!value) return '-';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()}`;
+});
+
+// Helper para formatear la respuesta de un datapoint segun su tipo
+Handlebars.registerHelper('formatDataPointValue', (response, dataType) => {
+    if (!response) return '-';
+    if (dataType === 'boolean') {
+        if (response.value_text == null) return '-';
+        return (response.value_text === true || response.value_text === 'true') ? 'Yes' : 'No';
+    }
+    if (response.value_numeric != null) {
+        return String(response.value_numeric) + (dataType === 'percent' ? ' %' : '');
+    }
+    return response.value_text != null ? String(response.value_text) : '-';
+});
 
 async function getBrowser() {
-    if (_browser) return _browser;
-    _browser = puppeteer.launch({
-        headless: 'new',
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-        ],
-    });
+    if (!_browser) {
+        _browser = puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        });
+    }
     return _browser;
 }
 
-function loadTemplate() {
-    const csrdTplPath = path.join(TEMPLATES_DIR, 'csrd.hbs');
-    const src = fs.readFileSync(csrdTplPath, 'utf8');
-    return Handlebars.compile(src);
-}
-
-function loadStyles() {
-    const cssPath = path.join(TEMPLATES_DIR, 'styles.css');
-    if (!fs.existsSync(cssPath)) return '';
-    return fs.readFileSync(cssPath, 'utf8');
-}
-
-async function renderHTML(auditId) {
-    const data = await getReportData(auditId);
-    const template = loadTemplate();
-    const styles = loadStyles();
-    return template({ ...data, _styles: styles });
-}
-
 async function generateCsrdReportPdf(auditId) {
-    const html = await renderHTML(auditId);
+    const data = await getReportData(auditId);
+    const template = Handlebars.compile(fs.readFileSync(path.join(TEMPLATES_DIR, 'csrd.hbs'), 'utf8'));
+    const styles = fs.readFileSync(path.join(TEMPLATES_DIR, 'styles.css'), 'utf8');
+    const html = template({ ...data, _styles: styles });
 
-}
-
-async function shutdown() {
-    if (_browser) {
-        const browser = await _browser;
-        await browser.close();
-        _browser = null;
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    try {
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+        const pdfBytes = await page.pdf({
+            format: 'A4',
+            printBackground: true,
+            margin: { top: '20mm', bottom: '20mm', left: '18mm', right: '18mm' },
+        });
+        return Buffer.from(pdfBytes);
+    } finally {
+        await page.close();
     }
 }
 
-module.exports = { generateCsrdReportPdf, renderHTML, shutdown };
+module.exports = { generateCsrdReportPdf };

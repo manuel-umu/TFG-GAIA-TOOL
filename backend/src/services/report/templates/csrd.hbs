@@ -2,14 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>CSRD Sustainability Report</title>
+<title>CSRD Sustainability Report — {{organization.name}}</title>
 <style>{{{_styles}}}</style>
 </head>
 <body>
 
-<h1 class="title">CSRD COMPLIANCE REPORT</h1>
+<div class="report-header">
+    <div class="logo-placeholder">GAIA-TOOL</div>
+    <div>
+        <h1 class="title">CSRD COMPLIANCE REPORT</h1>
+        {{#if organization.name}}<p class="subtitle">{{organization.name}}</p>{{/if}}
+    </div>
+</div>
 
-{{!-- SECTION 1 — Audit Information --}}
 <h2 class="section">1. Audit Information</h2>
 <ul class="info-list">
     <li><b>Name:</b> {{audit.name}}</li>
@@ -21,7 +26,6 @@
     <li><b>Period:</b> {{formatDate audit.init_date}} &rarr; {{formatDate audit.end_date}}</li>
 </ul>
 
-{{!-- SECTION 2 — Double Materiality --}}
 <h2 class="section">2. Double Materiality Assessment</h2>
 <table class="report-table">
     <thead>
@@ -40,15 +44,14 @@
             <td>{{s.code}}</td>
             <td>{{s.name}}</td>
             <td>{{s.category}}</td>
-            <td>{{yesNo s.is_mandatory}}</td>
-            <td>{{#if s.assessment}}{{materialLabel s.assessment.is_material}}{{else}}-{{/if}}</td>
+            <td>{{#if s.is_mandatory}}Yes{{else}}No{{/if}}</td>
+            <td>{{#if s.assessment}}{{#if s.assessment.is_material}}Material{{else}}Not material{{/if}}{{else}}-{{/if}}</td>
             <td>{{#if s.assessment.justification}}{{s.assessment.justification}}{{else}}-{{/if}}</td>
         </tr>
         {{/each}}
     </tbody>
 </table>
 
-{{!-- SECTION 3 — DataPoints --}}
 <h2 class="section">3. CSRD DataPoints</h2>
 {{#each questionnaire.standards as |std|}}
     {{#if std.has_validated_dps}}

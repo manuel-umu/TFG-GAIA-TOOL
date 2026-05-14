@@ -398,7 +398,7 @@ export default {
         doc.text(`Business Process: ${process.name}.`, 40, y);
         y += 20;
 
-        // 🔹 Combinar indicadores con resultados
+        // Combinar indicadores con resultados
         const combinedIndicators = process.indicators.map(ind => {
           const result = this.resultsIndicators.find(r => r.id === ind.id) || {};
           return {
@@ -412,14 +412,14 @@ export default {
           };
         });
 
-        // 🔹 Agrupar por dimensión
+        // Agrupar por dimensión
         const indicatorsByDimension = combinedIndicators.reduce((acc, ind) => {
           if (!acc[ind.dimension]) acc[ind.dimension] = [];
           acc[ind.dimension].push(ind);
           return acc;
         }, {});
 
-        // 🔹 Iterar dimensiones
+        // Iterar dimensiones
         Object.entries(indicatorsByDimension).forEach(([dimension, indicators]) => {
 
           // Subtítulo de dimensión
@@ -465,7 +465,7 @@ export default {
 
 
           // Actualizamos Y con espacio extra
-          y = doc.lastAutoTable.finalY + 20; // +12 para separar tablas
+          y = doc.lastAutoTable.finalY + 20; 
         });
 
         // Espacio extra entre procesos
@@ -475,181 +475,24 @@ export default {
       doc.save("ahp-sustainability-report.pdf");
     },
     async exportCsrdPDF(row) {
-      // Carga paralela de datos
-      const [materiality, questionnaire, auditResp] = await Promise.all([
-        axiosInstance.get(`/audits/${row.id}/materiality`),
-        axiosInstance.get(`/audits/${row.id}/questionnaire`),
-        axiosInstance.get(`/audits/${row.id}`),
-      ]);
-
-      const materialityStandards = materiality.data?.standards || [];
-      const questionnaireStandards = questionnaire.data?.standards || [];
-      const audit = auditResp.data?.audit || {};
-
-      const doc = new jsPDF('p', 'pt');
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const marginL = 40;
-      const marginR = 40;
-      const contentWidth = pageWidth - marginL - marginR;
-
-      // ---- CABECERA ----
-      const logo = await this.cargarLogo();
-      if (logo) doc.addImage(logo, 'PNG', marginL, 15, 110, 70);
-
-      doc.setFontSize(17);
-      doc.setFont('times', 'bold');
-      doc.setTextColor('#98A869');
-      doc.text('CSRD COMPLIANCE REPORT', 165, 65);
-      doc.setTextColor('#000000');
-      doc.line(marginL, 100, pageWidth - marginR, 100);
-
-      let y = 120;
-
-      // ---- INFORMACIÓN DE AUDITORÍA ----
-      doc.setFont('times', 'bold');
-      doc.setFontSize(13);
-      doc.text('1. Audit Information', marginL, y);
-      y += 18;
-
-      doc.setFont('times', 'normal');
-      doc.setFontSize(11);
-      const org = this.organizations.find(o => o.id == audit.organization);
-      doc.text(`Name: ${row.name}`, marginL, y); y += 15;
-      doc.text(`Organization: ${org?.name || '-'}`, marginL, y); y += 15;
-      doc.text(`Auditor: ${this.getNameUser(row.auditor)}`, marginL, y); y += 15;
-      doc.text(`Manager: ${this.getNameUser(row.manager)}`, marginL, y); y += 15;
-      doc.text(`Framework: ${row.framework_code || '-'}`, marginL, y); y += 15;
-      doc.text(`Period: ${row.init_date ? row.init_date.split('T')[0].split('-').reverse().join('-') : '-'} → ${row.end_date ? row.end_date.split('T')[0].split('-').reverse().join('-') : '-'}`, marginL, y);
-      y += 25;
-
-      // ---- SECCIÓN 2: MATERIALIDAD ----
-      doc.setFont('times', 'bold');
-      doc.setFontSize(13);
-      doc.text('2. Double Materiality Assessment', marginL, y);
-      y += 12;
-
-      const matBody = materialityStandards.map(s => [
-        s.code || '',
-        s.name || '',
-        s.category || '',
-        s.is_mandatory ? 'Yes' : 'No',
-        s.assessment?.is_material ? 'Material' : 'Not material',
-        s.assessment?.justification ? s.assessment.justification.substring(0, 120) : '-',
-      ]);
-
-      autoTable(doc, {
-        startY: y,
-        head: [['Code', 'Standard', 'Category', 'Mandatory', 'Materiality', 'Justification']],
-        body: matBody,
-        theme: 'grid',
-        headStyles: { fillColor: [152, 168, 105], textColor: 0, fontStyle: 'bold', fontSize: 9 },
-        styles: { font: 'times', fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
-        columnStyles: {
-          0: { cellWidth: 45 },
-          1: { cellWidth: 100 },
-          2: { cellWidth: 60 },
-          3: { cellWidth: 45 },
-          4: { cellWidth: 55 },
-          5: { cellWidth: 'auto' },
-        },
-        margin: { left: marginL, right: marginR },
-      });
-
-      y = doc.lastAutoTable.finalY + 25;
-
-      // ---- SECCIÓN 3: DATAPOINTS ----
-      doc.setFont('times', 'bold');
-      doc.setFontSize(13);
-      if (y > 720) { doc.addPage(); y = 50; }
-      doc.text('3. CSRD DataPoints — Completed & Validated Responses', marginL, y);
-      y += 14;
-
-      const VALID_STATUSES = ['completed', 'validated'];
-
-      for (const standard of questionnaireStandards) {
-        // Comprobar si hay al menos un DP válido en este estándar
-        const hasValidDPs = standard.disclosure_requirements?.some(dr =>
-          dr.data_points?.some(dp =>
-            dp.response?.is_applicable === true && VALID_STATUSES.includes(dp.response?.status)
-          )
-        );
-        if (!hasValidDPs) continue;
-
-        if (y > 700) { doc.addPage(); y = 50; }
-
-        doc.setFont('times', 'bold');
-        doc.setFontSize(11);
-        doc.text(`${standard.code} — ${standard.name}`, marginL, y);
-        y += 14;
-
-        for (const dr of (standard.disclosure_requirements || [])) {
-          const validDPs = (dr.data_points || []).filter(dp =>
-            dp.response?.is_applicable === true && VALID_STATUSES.includes(dp.response?.status)
-          );
-          if (validDPs.length === 0) continue;
-
-          if (y > 700) { doc.addPage(); y = 50; }
-
-          doc.setFont('times', 'italic');
-          doc.setFontSize(10);
-          doc.text(`${dr.code} — ${dr.name}`, marginL + 10, y);
-          y += 10;
-
-          const dpBody = validDPs.map(dp => {
-            let value = '-';
-            if (dp.data_type === 'boolean') {
-              value = dp.response.value_text != null ? (dp.response.value_text === 'true' || dp.response.value_text === true ? 'Yes' : 'No') : '-';
-            } else if (dp.data_type === 'narrative') {
-              const raw = dp.response.value_text || '-';
-              value = raw.length > 200 ? raw.substring(0, 200) + '…' : raw;
-            } else {
-              value = dp.response.value_numeric != null ? String(dp.response.value_numeric) + (dp.data_type === 'percent' ? ' %' : '') : '-';
-            }
-            return [
-              dp.official_id || '-',
-              dp.name || '-',
-              dp.data_type || '-',
-              value,
-              dp.response.evidence_reference || '-',
-              dp.response.status || '-',
-            ];
-          });
-
-          autoTable(doc, {
-            startY: y,
-            head: [['ID', 'DataPoint', 'Type', 'Value', 'Evidence', 'Status']],
-            body: dpBody,
-            theme: 'striped',
-            headStyles: { fillColor: [214, 220, 195], textColor: 0, fontStyle: 'bold', fontSize: 8 },
-            styles: { font: 'times', fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
-            columnStyles: {
-              0: { cellWidth: 55 },
-              1: { cellWidth: 130 },
-              2: { cellWidth: 40 },
-              3: { cellWidth: 'auto' },
-              4: { cellWidth: 70 },
-              5: { cellWidth: 45 },
-            },
-            margin: { left: marginL + 10, right: marginR },
-          });
-
-          y = doc.lastAutoTable.finalY + 12;
-        }
-        y += 10;
+      try {
+        this.isLoading = true;
+        const { data } = await axiosInstance.get(`/audits/${row.id}/report`, {
+          responseType: 'blob',
+        });
+        const blob = new Blob([data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `csrd-report-${row.id}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error downloading CSRD report:', error);
+        this.showError('Could not generate the CSRD report. Please try again.');
+      } finally {
+        this.isLoading = false;
       }
-
-      // ---- PIE ----
-      const totalPages = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        doc.setFont('times', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor('#888888');
-        doc.text(`Generated: ${new Date().toLocaleDateString()} — Page ${i} of ${totalPages}`, marginL, doc.internal.pageSize.getHeight() - 20);
-        doc.setTextColor('#000000');
-      }
-
-      doc.save(`csrd-report-${row.id}.pdf`);
     },
     addJustifiedText: function(doc, text, x, y, maxWidth, lineHeight) {
       const paragraphs = text.split('\n'); // separar por párrafos
