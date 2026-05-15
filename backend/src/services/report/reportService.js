@@ -27,7 +27,11 @@ Handlebars.registerHelper('formatDataPointValue', (response, dataType) => {
         return (response.value_text === true || response.value_text === 'true') ? 'Yes' : 'No';
     }
     if (response.value_numeric != null) {
-        return String(response.value_numeric) + (dataType === 'percent' ? ' %' : '');
+        const num = Number(response.value_numeric);
+        const formatted = Number.isNaN(num)
+            ? String(response.value_numeric)
+            : num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        return formatted + (dataType === 'percent' ? ' %' : '');
     }
     return response.value_text != null ? String(response.value_text) : '-';
 });

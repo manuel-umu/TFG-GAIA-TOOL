@@ -46,6 +46,12 @@ body {
     margin: 12px 0 4px 0;
 }
 
+.na-heading {
+    font-size: 9pt;
+    color: #888;
+    margin: 4px 0 2px 0;
+}
+
 table.report-table {
     width: 100%;
     border-collapse: collapse;
@@ -63,4 +69,13 @@ table.report-table td {
 
 table.report-table thead th {
     background: #98A869;
+}
+
+table.na-table {
+    color: #777;
+    font-size: 8.5pt;
+}
+
+table.na-table thead th {
+    background: #d8ddca;
 }

@@ -142,25 +142,34 @@ async function getReportData(auditId) {
             });
         }
         // Funcion auxiliar para filtrar solo los datapoints aplicables, completados o validados
-        const isValidated = (dp) =>
+        const isReported = (dp) =>
             dp.response &&
             dp.response.is_applicable === true &&
             (dp.response.status === 'completed' || dp.response.status === 'validated');
 
-        // Cuestionario final con solo los standards materiales, sus DRs y DP con respuestas
+        // Datapoint marcado como No Aplicable por el auditor
+        const isNotApplicable = (dp) =>
+            dp.response &&
+            dp.response.is_applicable === false;
+
         questionnaireStandards = standards
             .filter(s => materialStandardIds.includes(s.id))
             .map(s => {
-                const drs = (drsByStandardId.get(s.id) || []).map(dr => {
-                    const validated = (dr.data_points || []).filter(isValidated);
-                    return { ...dr, validated_data_points: validated };
-                });
+                const drs = (drsByStandardId.get(s.id) || [])
+                    .map(dr => ({
+                        code: dr.code,
+                        name: dr.name,
+                        reported_data_points: (dr.data_points || []).filter(isReported),
+                        na_data_points: (dr.data_points || []).filter(isNotApplicable),
+                    }))
+                    .filter(dr => dr.reported_data_points.length > 0 || dr.na_data_points.length > 0);
                 return {
                     id: s.id,
                     code: s.code,
                     name: s.name,
                     category: s.category,
                     disclosure_requirements: drs,
+                    has_content: drs.length > 0,
                 };
             });
     }
