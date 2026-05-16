@@ -38,6 +38,7 @@
             type="is-dark"
             inverted
             size="is-small"
+            :loading="action.loadingCondition ? action.loadingCondition(props.row) : false"
             :disabled="action.disabledCondition ? action.disabledCondition(props.row) : false"
             @click="$emit(action.event, props.row)"
             style="background-color: unset; font-size:1em;"
@@ -122,6 +123,25 @@ export default {
 .b-table td,
 .b-table th {
   vertical-align: middle !important;
+}
+
+.b-table td .button {
+  width: 2em;
+  height: 2em;
+}
+
+.b-table td .button.is-loading::after {
+  border-color: transparent transparent #000000 #000000 !important;
+}
+
+.b-table td .button:hover {
+  border-color: #363636 !important;
+}
+
+.b-table td .button:focus:not(:hover),
+.b-table td .button:focus:not(:active):not(:hover) {
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 </style>

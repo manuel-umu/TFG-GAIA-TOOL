@@ -270,7 +270,7 @@ export default {
           event: 'materiality',
           icon: 'mdi mdi-clipboard-check-outline',
           tooltip: 'Double Materiality',
-          disabledCondition: (row) => (row.state === 'Closed'),
+          disabledCondition: (row) => (row.state === 'Closed' || row.framework_code === null),
         },
         {
           event: 'questionnaire',

@@ -67,7 +67,7 @@ async function create_organization(req, res) {
 
     if (handleValidation(req, res)) return;
 
-    const { name, description, country, sector, rangeEmployees, website, goals, factors } = req.body;
+    const { name, description, country, sector, rangeEmployees, website, goals, factors, logo_url, revenue } = req.body;
 
     const transaction = await sequelize.transaction();
 
@@ -85,7 +85,7 @@ async function create_organization(req, res) {
         var joinedGoals = goals.join(";");
 
         const newOrganization = await Organizations.create(
-            { name, description, country, sector, rangeEmployees, website, goals: joinedGoals },
+            { name, description, country, sector, rangeEmployees, website, goals: joinedGoals, logo_url: logo_url || null, revenue: revenue || null },
             { transaction }
         );
 
@@ -116,7 +116,7 @@ async function update_organization(req, res) {
     if (handleValidation(req, res)) return;
     
     const { id } = req.params;
-    const { name, description, country, sector, rangeEmployees, website, goals, factors } = req.body;
+    const { name, description, country, sector, rangeEmployees, website, goals, factors, logo_url, revenue } = req.body;
 
     const existingOrg = await Organizations.findOne({ where: { name } });
     if (existingOrg && existingOrg.id !== parseInt(id)) {
@@ -139,7 +139,7 @@ async function update_organization(req, res) {
         var joinedGoals = goals.join(";");
         console.log(joinedGoals);
         const organizationUp = await Organizations.update(
-            { name, description, country, sector, rangeEmployees, website, goals: joinedGoals },
+            { name, description, country, sector, rangeEmployees, website, goals: joinedGoals, logo_url: logo_url || null, revenue: revenue || null },
             { where: { id }, transaction }
         );
 

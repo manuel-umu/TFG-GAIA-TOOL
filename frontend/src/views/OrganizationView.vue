@@ -237,7 +237,25 @@
               </b-field>
               <b-button class="button-plus" icon-right="plus" @click="clickAddFactor"/>
             </div>
-          </div>          
+          </div>
+
+          <b-field label="Logo" style="margin-top: 1em;">
+            <div class="logo-upload">
+              <b-button @click="$refs.logoInput.click()">Seleccionar archivo</b-button>
+              <input
+                ref="logoInput"
+                type="file"
+                accept="image/*"
+                style="display: none"
+                @change="handleLogoChange"
+              />
+              <template v-if="logo_url">
+                <img :src="logo_url" class="logo-preview" alt="Logo preview" />
+                <b-button type="is-danger is-light" size="is-small" @click="logo_url = null">Eliminar</b-button>
+              </template>
+              <span v-else class="no-logo-text">Sin logo seleccionado</span>
+            </div>
+          </b-field>
         </form>
       </section>
       <footer class="modal-card-foot custom-footer">
@@ -294,6 +312,7 @@ export default {
       website: null,
       goals: [],
       factors: [],
+      logo_url: null,
       osGoals: null,
       csFactor: null,
       messageName: '',
@@ -346,6 +365,7 @@ export default {
         this.rangeEmployees = null;
         this.website = null;
         this.goals = [];
+        this.logo_url = null;
         this.osGoals = null,
         this.factors = [];
         this.csFactor = null;
@@ -407,6 +427,7 @@ export default {
           this.website = org.website;
           this.goals = org.goals.split(";");
           this.factors = org.factors.split(";");
+          this.logo_url = org.logo_url || null;
           this.idOrganization = org.id;
 
           if (this.action === 'show') {
@@ -539,6 +560,7 @@ export default {
             website: this.website,
             goals: this.goals,
             factors: this.factors,
+            logo_url: this.logo_url || null,
           });
           await this.getOrganizations();
           this.isLoading = false;
@@ -560,6 +582,7 @@ export default {
           website: this.website,
           goals: this.goals,
           factors: this.factors,
+          logo_url: this.logo_url || null,
         });
         this.isLoading = false;
         this.isModalActive = false;
@@ -617,6 +640,15 @@ export default {
         type: 'is-danger',
         duration: 5000,
       });
+    },
+    handleLogoChange(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.logo_url = e.target.result;
+      };
+      reader.readAsDataURL(file);
     },
   }
 }
@@ -689,4 +721,24 @@ ul {
   margin-bottom: 0.5em;
 }
 
+.logo-upload {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.logo-preview {
+  max-width: 120px;
+  max-height: 120px;
+  object-fit: contain;
+  border: 1px solid #dbdbdb;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.no-logo-text {
+  color: #aaa;
+  font-size: 0.9em;
+}
 </style>

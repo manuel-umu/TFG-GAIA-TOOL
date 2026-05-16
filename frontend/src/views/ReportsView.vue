@@ -53,6 +53,7 @@ export default {
 
       allAudits: [],
       isLoading: false,
+      loadingRowId: null,
 
       name: null,
       description: null,
@@ -103,11 +104,13 @@ export default {
           icon: 'mdi mdi-file-chart-outline',
           event: 'report-ahp',
           disabledCondition: (row) => row.state === 'Not evaluated',
+          loadingCondition: (row) => this.loadingRowId === row.id,
           if: (row) => !row.framework_code,
         },
         {
           icon: 'mdi mdi-leaf',
           event: 'report-csrd',
+          loadingCondition: (row) => this.loadingRowId === row.id,
           if: (row) => !!row.framework_code,
         },
       ];
@@ -281,6 +284,7 @@ export default {
         });
     },
     async exportAhpPDF(row) {
+      this.loadingRowId = row.id;
       await this.getAudit(row.id);
       const doc = new jsPDF('p', 'pt');
 
@@ -472,11 +476,12 @@ export default {
         y += 20;
       });
 
+      this.loadingRowId = null;
       doc.save("ahp-sustainability-report.pdf");
     },
     async exportCsrdPDF(row) {
       try {
-        this.isLoading = true;
+        this.loadingRowId = row.id;
         const { data } = await axiosInstance.get(`/audits/${row.id}/report`, {
           responseType: 'blob',
         });
@@ -491,7 +496,7 @@ export default {
         console.error('Error downloading CSRD report:', error);
         this.showError('Could not generate the CSRD report. Please try again.');
       } finally {
-        this.isLoading = false;
+        this.loadingRowId = null;
       }
     },
     addJustifiedText: function(doc, text, x, y, maxWidth, lineHeight) {

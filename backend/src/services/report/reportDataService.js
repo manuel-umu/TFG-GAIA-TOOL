@@ -182,6 +182,7 @@ async function getReportData(auditId) {
             end_date: audit.end_date,
             frequency: audit.frequency,
             state: audit.state,
+            reporting_year: audit.reporting_year || null,
         },
         organization: organization ? {
             id: organization.id,
@@ -191,6 +192,7 @@ async function getReportData(auditId) {
             sector: organization.sector,
             rangeEmployees: organization.rangeEmployees,
             website: organization.website,
+            logo_url: organization.logo_url || null,
         } : null,
         auditor: auditor ? { id: auditor.id, name: auditor.name, email: auditor.email } : null,
         manager: manager ? { id: manager.id, name: manager.name, email: manager.email } : null,

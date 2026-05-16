@@ -210,7 +210,7 @@ async function create_audit(req, res) {
 
     if (handleValidation(req, res)) return;
 
-    const { name, description, auditor, manager, init_date, end_date, frequency, organization, processes, framework_version_id } = req.body;
+    const { name, description, auditor, manager, init_date, end_date, frequency, organization, processes, framework_version_id, reporting_year, logo } = req.body;
 
     let transaction = undefined;
     let processes_ids = processes;
@@ -265,7 +265,7 @@ async function create_audit(req, res) {
 
         transaction = await sequelize.transaction();
 
-        const newAudit = await Audits.create({ name, description, auditor, manager, init_date, end_date, frequency, state, organization: organization, framework_version_id: framework_version_id || null }, { transaction });
+        const newAudit = await Audits.create({ name, description, auditor, manager, init_date, end_date, frequency, state, organization: organization, framework_version_id: framework_version_id || null, reporting_year: reporting_year || null, logo: logo || null }, { transaction });
 
 
         for (const proc of processes_ids) {
@@ -303,7 +303,7 @@ async function update_audit(req, res) {
 
     const { id } = req.params;
 
-    const { name, description, auditor, manager, init_date, end_date, frequency, organization, processes, framework_version_id } = req.body;
+    const { name, description, auditor, manager, init_date, end_date, frequency, organization, processes, framework_version_id, reporting_year, logo } = req.body;
 
     let transaction = undefined;
 
@@ -348,7 +348,7 @@ async function update_audit(req, res) {
         transaction = await sequelize.transaction();
 
         await Audits.update(
-            { name, description, auditor, manager, init_date, end_date, frequency, organization, framework_version_id: framework_version_id || null },
+            { name, description, auditor, manager, init_date, end_date, frequency, organization, framework_version_id: framework_version_id || null, reporting_year: reporting_year || null, logo: logo || null },
             { where: { id }, transaction }
         );
 

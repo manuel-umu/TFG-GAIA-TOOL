@@ -8,13 +8,33 @@
   </head>
   <body>
 
-    <div class="report-header">
-      <div class="logo-placeholder">GAIA-TOOL</div>
-      <div>
-        <h1 class="title">CSRD COMPLIANCE REPORT</h1>
-        {{#if organization.name}}<p
-            class="subtitle"
-          >{{organization.name}}</p>{{/if}}
+    <!-- PORTADA -->
+    <div class="cover-page">
+      {{#if organization.logo_url}}
+      <div class="cover-top">
+        <img src="{{organization.logo_url}}" class="cover-logo" alt="{{organization.name}}" />
+      </div>
+      {{/if}}
+
+      <div class="cover-center">
+        {{#unless organization.logo_url}}
+          <p class="cover-brand">GAIA-TOOL</p>
+        {{/unless}}
+        <h1 class="cover-title">Sustainability Statement<br>under CSRD</h1>
+        <p class="cover-org">{{organization.name}}</p>
+        {{#if audit.reporting_year}}
+          <p class="cover-year">Fiscal Year {{audit.reporting_year}}</p>
+        {{/if}}
+        <p class="cover-subtitle">
+          Prepared in accordance with the<br>
+          European Sustainability Reporting Standards (ESRS)
+        </p>
+      </div>
+
+      <div class="cover-footer">
+        <div class="cover-footer-item"><b>Auditor:</b> {{auditor.name}}</div>
+        <div class="cover-footer-item"><b>Manager:</b> {{manager.name}}</div>
+        <div class="cover-footer-item"><b>Generated:</b> {{formatDate generatedAt}}</div>
       </div>
     </div>
 

@@ -35,6 +35,14 @@ Audit.init(
       type: DataTypes.ENUM('Daily', 'Weekly', 'Monthly', 'Quarterly', 'Annual'),
       allowNull: false,
     },
+    reporting_year: {
+      type: DataTypes.SMALLINT.UNSIGNED,
+      allowNull: true,
+    },
+    logo: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     framework_version_id: {
       type: DataTypes.SMALLINT.UNSIGNED,
       allowNull: true,

@@ -168,7 +168,22 @@
           </b-field>
         </div>
 
-        <span v-if="messageProcesses != ''" style="color: red;"> {{ messageProcesses }}</span>
+        <b-field label="Reporting year">
+          <b-autocomplete
+            v-model="reporting_year_text"
+            :data="filteredReportingYears"
+            :open-on-focus="true"
+            clearable
+            placeholder="Select a year"
+            max-height="180px"
+            @focus="reporting_year_text = ''"
+            @blur="onYearBlur"
+            @select="val => reporting_year = val ? Number(val) : null"
+            @clear="reporting_year = null"
+          />
+        </b-field>
+
+<span v-if="messageProcesses != ''" style="color: red;"> {{ messageProcesses }}</span>
         <div style="display: flex;">
           <div style="flex: 1; margin: 5px; margin-left: 0px !important;">
               <b-field label="Strategics business processes" for="strategic-process" :type="messageProcStrategic != '' ? 'is-danger' : ''":message="messageProcStrategic">
@@ -311,6 +326,8 @@ export default {
       frequency: null,
       state: null,
       organization: null,
+      reporting_year: null,
+      reporting_year_text: '',
       messageName: '',
       messageDescription: '',
       messageAuditor: '',
@@ -396,6 +413,9 @@ export default {
             this.messageProcSupport = '';
             this.messageProcesses = '';
 
+            this.reporting_year = null;
+            this.reporting_year_text = '';
+
             this.framework_id = null;
             this.framework_version_id = null;
             this.frameworkVersions = [];
@@ -419,6 +439,15 @@ export default {
     },
   },
   computed: {
+    reportingYears() {
+      const current = new Date().getFullYear();
+      return Array.from({ length: 101 }, (_, i) => current - i);
+    },
+    filteredReportingYears() {
+      const years = this.reportingYears.map(String);
+      if (!this.reporting_year_text) return years;
+      return years.filter(y => y.includes(this.reporting_year_text));
+    },
     filteredStrategicProcesses() {
       return this.strategicProcesses.filter(p => {
         return p.toString().toLowerCase().indexOf(this.strategicProcess.toLowerCase()) >= 0;
@@ -452,6 +481,11 @@ export default {
     await this.getFrameworks();
   },
   methods: {
+    onYearBlur() {
+      if (this.reporting_year && !this.reporting_year_text) {
+        this.reporting_year_text = String(this.reporting_year);
+      }
+    },
     getFrameworks: async function() {
       try {
         const response = await axiosInstance.get('/frameworks');
@@ -575,6 +609,8 @@ export default {
           }
         }
         this.organization = audit.organization;
+        this.reporting_year = audit.reporting_year || null;
+        this.reporting_year_text = audit.reporting_year ? String(audit.reporting_year) : '';
         const proc = audit.processes;
         for (const p of proc) {
             const foundProcess = this.processes.find(it => it.id == p);
@@ -645,6 +681,7 @@ export default {
             'organization': this.organization,
             'processes': proc,
             'framework_version_id': this.framework_version_id || null,
+            'reporting_year': this.reporting_year || null,
           });
           this.isLoading = false;
           this.closeModal();
@@ -685,6 +722,7 @@ export default {
             'organization': this.organization,
             'processes': proc,
             'framework_version_id': this.framework_version_id || null,
+            'reporting_year': this.reporting_year || null,
           });
           this.isLoading = false;
           this.closeModal();
@@ -811,5 +849,6 @@ export default {
   font-weight: bold;
   cursor: pointer;
 }
+
 
 </style>

@@ -140,13 +140,15 @@ async function seed() {
         console.log(`  Standards insertados:              ${totalStandards}`);
         console.log(`  DisclosureRequirements insertados: ${totalDRs}`);
         console.log(`  DataPoints insertados:             ${totalDataPoints}`);
-
-        process.exit(0);
     } catch (err) {
         await transaction.rollback();
         console.error('Error durante el seed, se ha hecho rollback de la transaccion:', err);
-        process.exit(1);
+        throw err;
     }
 }
 
-seed();
+if (require.main === module) {
+    seed().then(() => process.exit(0)).catch(() => process.exit(1));
+}
+
+module.exports = { seed };

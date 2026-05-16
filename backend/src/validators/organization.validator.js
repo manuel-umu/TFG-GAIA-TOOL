@@ -45,6 +45,13 @@ const organizationsValidator = [
       }
       return true;  // Si todo está bien, devuelve true para continuar
     }),
+
+  body('logo_url')
+    .optional({ checkFalsy: true }),
+
+  body('revenue')
+    .optional({ checkFalsy: true })
+    .isFloat({ min: 0 }).withMessage('Revenue must be a non-negative number.'),
 ];
 
 module.exports = organizationsValidator;

@@ -9,16 +9,20 @@ const Audit = require('../models/audit.model.js');
 const FrameworkVersion = require('../models/framework_version.model.js');
 const SourceDocument = require('../models/source_document.model.js');
 const DataPointSource = require('../models/data_point_source.model.js');
-
-//temporal
+const sequelize = require('./sequelize.js');
+const seedCSRD = require('../seeds/seedCSRD.js');
 async function initialize() {
     try{
         console.log('Inicializando initialize');
-
-       
-        //await SourceDocument.sync();
-        //await DataPointSource.sync();
+        await sequelize.sync({ alter: true });
         
+        const Framework = require('../models/framework.model.js');
+        const existingFramework = await Framework.findOne({ where: { code: 'CSRD' } });
+        if (!existingFramework) {
+            await seedCSRD.seed();
+        } else {
+            console.log('Framework CSRD ya existe, seed omitido.');
+        }
         // Usuario evaluador de prueba
         let evaluator = await User.findOne({ where: { username: 'ev1' } });
         if (!evaluator) {
@@ -117,7 +121,8 @@ async function initialize() {
                 organization: org.id,
                 manager: admin.id,
                 auditor: evaluator.id,
-                framework_version_id: 1,
+                framework_version_id: null,
+                reporting_year: 2025,
             });
             console.log('Audit created');
         }

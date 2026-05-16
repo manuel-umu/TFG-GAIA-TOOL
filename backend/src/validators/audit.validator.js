@@ -53,7 +53,11 @@ const auditsValidator = [
 
   body('organization')
     .notEmpty().withMessage('Organization is required.')
-    .isInt().withMessage('Organization ID must be an integer.')
+    .isInt().withMessage('Organization ID must be an integer.'),
+
+  body('reporting_year')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 2000, max: 2100 }).withMessage('Reporting year must be a year between 2000 and 2100.')
 ];
 
 module.exports = auditsValidator;

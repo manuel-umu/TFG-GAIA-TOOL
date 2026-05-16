@@ -40,6 +40,14 @@ Organization.init(
             type: DataTypes.STRING(1000),
             allowNull: false,
         },
+        logo_url: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+        },
+        revenue: {
+            type: DataTypes.DECIMAL(15, 2),
+            allowNull: true,
+        },
     },
     {
         sequelize,
