@@ -1,18 +1,27 @@
 <template>
   <section v-if="action === 'materiality'">
-    <div style="display: flex; align-items: center; margin-bottom: 24px;">
+    <div class="materiality-header">
       <b-button
         class="mdi mdi-keyboard-backspace button-back"
         @click="closeMateriality"
       />
       <h1 class="title">Double Materiality Assessment</h1>
       <b-button
-        type="is-info is-light"
+        class="btn-app-green-outline"
         icon-left="robot"
         style="margin-left: auto;"
         @click="openAiModal"
       >
         Suggest with AI
+      </b-button>
+      <b-button
+        class="btn-app-green"
+        icon-left="content-save"
+        style="margin-left: 8px;"
+        :loading="isSaving"
+        @click="saveMateriality"
+      >
+        Save
       </b-button>
     </div>
 
@@ -87,16 +96,6 @@
         </div>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
-        <b-button
-          class="btn-app-green"
-          icon-left="content-save"
-          :loading="isSaving"
-          @click="saveMateriality"
-        >
-          Save assessment
-        </b-button>
-      </div>
     </div>
 
     <!-- Panel de sugerencias de IA -->
@@ -373,6 +372,21 @@ export default {
 </script>
 
 <style scoped>
+.materiality-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #fff;
+  margin-left: -16px;
+  margin-right: -16px;
+  border-bottom: 1px solid #e8e8e8;
+  box-shadow: 0 4px 8px -4px rgba(0, 0, 0, 0.12);
+}
+
 .btn-app-green {
   background-color: #adb987;
   border-color: #adb987;
@@ -384,6 +398,26 @@ export default {
   background-color: #9aa876;
   border-color: #9aa876;
   color: #fff;
+}
+
+.btn-app-green-outline {
+  background-color: transparent;
+  border: 1.5px solid #adb987;
+  color: #adb987;
+  font-weight: 500;
+}
+
+.btn-app-green-outline:hover,
+.btn-app-green-outline:focus-visible {
+  background-color: #adb987;
+  border-color: #adb987;
+  color: #fff;
+}
+
+.btn-app-green-outline:focus:not(:focus-visible) {
+  background-color: transparent;
+  border-color: #adb987;
+  color: #adb987;
 }
 
 .button-back {

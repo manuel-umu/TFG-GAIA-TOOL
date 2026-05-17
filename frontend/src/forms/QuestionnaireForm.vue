@@ -9,7 +9,7 @@
       <h1 class="title">ESRS Questionnaire</h1>
       <div class="header-actions">
         <b-button
-          type="is-info is-light"
+          class="btn-app-green-outline"
           icon-left="robot"
           style="margin-right: 8px;"
           @click="$emit('open-extraction')"
@@ -57,6 +57,18 @@
               {{ standardProgress(standard).filled }} / {{ standardProgress(standard).total }}
             </b-tag>
           </template>
+
+          <!-- Barra de acciones del estándar -->
+          <div class="standard-toolbar">
+            <b-button
+              class="btn-app-green-outline"
+              size="is-small"
+              icon-left="checkbox-marked-circle-outline"
+              @click="markEmptyAsNA(standard)"
+            >
+              Mark empty as N/A
+            </b-button>
+          </div>
 
           <!-- Contenido del estándar: bloques por DisclosureRequirement -->
           <div
@@ -293,25 +305,6 @@
             </div>
           </div>
 
-          <!-- Botón guardar al pie del tab también -->
-          <div class="save-footer">
-            <b-button
-              type="is-info is-light"
-              icon-left="robot"
-              style="margin-right: 8px;"
-              @click="$emit('open-extraction')"
-            >
-              Complete with AI
-            </b-button>
-            <b-button
-              class="btn-app-green"
-              icon-left="content-save"
-              :loading="isSaving"
-              @click="save"
-            >
-              Save
-            </b-button>
-          </div>
         </b-tab-item>
       </b-tabs>
     </div>
@@ -481,6 +474,53 @@ export default {
       this.markEdited(dpId, 'evidence_reference', value || null);
     },
 
+    // Marca como "Not applicable" todos los DataPoints vacíos del estándar
+    markEmptyAsNA: function (standard) {
+      const candidates = [];
+      (standard.disclosure_requirements || []).forEach((dr) => {
+        (dr.data_points || []).forEach((dp) => {
+          const entry = this.localData[dp.id];
+          if (!entry || !entry.is_applicable) return;
+          const hasText = entry.value_text !== null && entry.value_text !== '' && entry.value_text !== undefined;
+          const hasNumeric = entry.value_numeric !== null && entry.value_numeric !== '' && entry.value_numeric !== undefined;
+          if (!hasText && !hasNumeric) candidates.push(dp.id);
+        });
+      });
+
+      if (candidates.length === 0) {
+        this.$buefy.snackbar.open({
+          message: `No empty DataPoints to mark in ${standard.code}.`,
+          type: 'is-warning',
+          duration: 3000,
+        });
+        return;
+      }
+
+      this.$buefy.dialog.confirm({
+        title: 'Mark empty as Not applicable',
+        message: `This will mark <strong>${candidates.length}</strong> empty DataPoint(s) of <strong>${standard.code}</strong> as "Not applicable". You can still change them individually afterwards.`,
+        confirmText: 'Mark as N/A',
+        cancelText: 'Cancel',
+        type: 'is-warning',
+        hasIcon: true,
+        onConfirm: () => {
+          candidates.forEach((dpId) => {
+            const current = this.localData[dpId];
+            this.$set(this.localData, dpId, {
+              ...current,
+              is_applicable: false,
+              status: 'completed',
+            });
+          });
+          this.$buefy.snackbar.open({
+            message: `${candidates.length} DataPoint(s) marked as Not applicable in ${standard.code}.`,
+            type: 'is-success',
+            duration: 4000,
+          });
+        },
+      });
+    },
+
     openEvidence: function (dpId) {
       this.$set(this.evidenceOpen, dpId, true);
     },
@@ -566,7 +606,15 @@ export default {
   display: flex;
   align-items: center;
   margin-bottom: 24px;
-  padding: 12px 0 12px 0;
+  padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: #fff;
+  margin-left: -16px;
+  margin-right: -16px;
+  border-bottom: 1px solid #e8e8e8;
+  box-shadow: 0 4px 8px -4px rgba(0, 0, 0, 0.12);
 }
 
 .button-back {
@@ -592,6 +640,20 @@ export default {
 /* Tabs */
 .questionnaire-tabs {
   margin-top: 8px;
+}
+
+.standard-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.questionnaire-tabs >>> nav.tabs {
+  position: sticky;
+  top: 80px;
+  align-self: flex-start;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
 }
 
 .tab-label-code {
@@ -807,12 +869,24 @@ export default {
   color: #fff;
 }
 
-/* Footer guardar */
-.save-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #e8e8e8;
+.btn-app-green-outline {
+  background-color: transparent;
+  border: 1.5px solid #adb987;
+  color: #adb987;
+  font-weight: 500;
 }
+
+.btn-app-green-outline:hover,
+.btn-app-green-outline:focus-visible {
+  background-color: #adb987;
+  border-color: #adb987;
+  color: #fff;
+}
+
+.btn-app-green-outline:focus:not(:focus-visible) {
+  background-color: transparent;
+  border-color: #adb987;
+  color: #adb987;
+}
+
 </style>

@@ -6,7 +6,7 @@
       <b-button class="mdi mdi-keyboard-backspace button-back" @click="closeExtraction" />
       <h1 class="title">DataPoint Extraction with IA</h1>
       <b-button
-        type="is-primary"
+        class="btn-app-green"
         icon-left="file-upload"
         style="margin-left: auto;"
         :loading="isUploading"
@@ -54,7 +54,7 @@
           <div style="display: flex; gap: 6px; flex-shrink: 0;">
             <b-button
               v-if="selectedDocumentId !== doc.id"
-              type="is-info is-light"
+              class="btn-app-green-outline"
               size="is-small"
               :disabled="doc.processed_status !== 'completed'"
               @click="selectedDocumentId = doc.id"
@@ -97,25 +97,47 @@
             <span class="tag is-dark" style="font-family: monospace; margin-right: 8px;">{{ std.code }}</span>
             <span class="standard-name">{{ std.name }}</span>
             <b-button
-              type="is-info is-light"
+              v-if="!hasResults(std.id)"
+              class="btn-app-green-outline"
               icon-left="robot"
               size="is-small"
               style="margin-left: auto;"
               :loading="!!loadingStandards[std.id]"
-              @click="extractStandard(std)"
+              @click="confirmExtractStandard(std)"
             >
               Extract
+            </b-button>
+            <b-button
+              v-else
+              class="btn-app-green"
+              icon-left="content-save"
+              size="is-small"
+              style="margin-left: auto;"
+              :loading="!!finalizingStandards[std.id]"
+              @click="finalizeStandard(std)"
+            >
+              Finalize
             </b-button>
           </div>
            <!-- Resultados -->
           <div v-if="extractionResults[std.id]" class="extraction-result">
-            <b-tag
-              :type="extractionResults[std.id].extracted > 0 ? 'is-success is-light' : 'is-warning is-light'"
-              style="margin-top: 8px;"
-            >
-              <b-icon icon="check-circle" size="is-small" style="margin-right: 4px;" />
-              {{ extractionResults[std.id].extracted }} DataPoints extracted
-            </b-tag>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+              <b-tag
+                :type="extractionResults[std.id].extracted > 0 ? 'is-success is-light' : 'is-warning is-light'"
+              >
+                <b-icon icon="check-circle" size="is-small" style="margin-right: 4px;" />
+                {{ extractionResults[std.id].extracted }} DataPoints extracted
+              </b-tag>
+              <b-button
+                v-if="extractionResults[std.id].results.length > 0"
+                size="is-small"
+                :type="allIncluded(std.id) ? 'is-light' : 'is-primary is-light'"
+                :icon-left="allIncluded(std.id) ? 'close-box-multiple' : 'checkbox-multiple-marked'"
+                @click="toggleIncludeAll(std.id)"
+              >
+                {{ allIncluded(std.id) ? 'Unselect all' : 'Select all' }}
+              </b-button>
+            </div>
 
             <div
               v-for="r in extractionResults[std.id].results"
@@ -151,18 +173,6 @@
               </div>
             </div>
 
-            <!-- Botón finalizar -->
-            <div v-if="extractionResults[std.id] && extractionResults[std.id].results.length > 0" style="margin-top: 12px; display: flex; justify-content: flex-end;">
-              <b-button
-                type="is-primary"
-                icon-left="content-save"
-                :loading="!!finalizingStandards[std.id]"
-                :disabled="false"
-                @click="finalizeStandard(std)"
-              >
-                Finalize
-              </b-button>
-            </div>
           </div>
 
         </div>
@@ -287,6 +297,26 @@ export default {
       }
     },
 
+    confirmExtractStandard: function(standard) {
+      if (!this.selectedDocumentId) return;
+      const docName = this.selectedDocument
+        ? this.selectedDocument.original_name
+        : 'the selected document';
+      this.$buefy.dialog.confirm({
+        title: 'Extract DataPoints with AI',
+        message:
+          `The AI will analyze <strong>${docName}</strong> to extract DataPoints for ` +
+          `<strong>${standard.code} — ${standard.name}</strong>.<br><br>` +
+          `<em>Due to the compute capacity of the AI model, this process may take ` +
+          `a couple of minutes. Please keep this view open while it runs.</em>`,
+        confirmText: 'Extract',
+        cancelText: 'Cancel',
+        type: 'is-info',
+        hasIcon: true,
+        onConfirm: () => this.extractStandard(standard),
+      });
+    },
+
     extractStandard: async function(standard) {
       if (!this.selectedDocumentId) return;
 
@@ -325,8 +355,26 @@ export default {
       }
     },
 
+    hasResults: function(stdId) {
+      const res = this.extractionResults[stdId];
+      return !!(res && res.results && res.results.length > 0);
+    },
+
     includeResult: function(r) {
       this.$set(r, 'included', !r.included);
+    },
+
+    allIncluded: function(stdId) {
+      const res = this.extractionResults[stdId];
+      if (!res || res.results.length === 0) return false;
+      return res.results.every(r => r.included);
+    },
+
+    toggleIncludeAll: function(stdId) {
+      const res = this.extractionResults[stdId];
+      if (!res) return;
+      const newValue = !this.allIncluded(stdId);
+      res.results.forEach(r => this.$set(r, 'included', newValue));
     },
 
     finalizeStandard: async function(standard) {
@@ -354,7 +402,9 @@ export default {
           type: 'is-success',
           duration: 3000,
         });
-        this.closeExtraction();
+        // Limpia los resultados de este estándar: el botón vuelve a "Extract"
+        // y el usuario puede seguir trabajando con otros estándares.
+        this.$delete(this.extractionResults, standard.id);
       } catch (error) {
         const msg =
           error.response?.data?.detail ||
@@ -411,9 +461,41 @@ export default {
 </script>
 
 <style scoped>
-/* Spinner visible en botones de color claro */
 .standard-box .button.is-loading::after {
-  border-color: transparent transparent #1976d2 #1976d2 !important;
+  border-color: transparent transparent #adb987 #adb987 !important;
+}
+
+.btn-app-green {
+  background-color: #adb987;
+  border-color: #adb987;
+  color: #fff;
+}
+
+.btn-app-green:hover,
+.btn-app-green:focus {
+  background-color: #9aa876;
+  border-color: #9aa876;
+  color: #fff;
+}
+
+.btn-app-green-outline {
+  background-color: transparent;
+  border: 1.5px solid #adb987;
+  color: #adb987;
+  font-weight: 500;
+}
+
+.btn-app-green-outline:hover,
+.btn-app-green-outline:focus-visible {
+  background-color: #adb987;
+  border-color: #adb987;
+  color: #fff;
+}
+
+.btn-app-green-outline:focus:not(:focus-visible) {
+  background-color: transparent;
+  border-color: #adb987;
+  color: #adb987;
 }
 
 .button-back {
@@ -515,8 +597,12 @@ export default {
 .result-value {
   font-size: 0.84rem;
   flex: 1;
+  min-width: 0;
   color: #555;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 .result-meta {
   display: flex;
