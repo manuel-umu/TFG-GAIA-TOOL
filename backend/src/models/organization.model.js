@@ -41,7 +41,7 @@ Organization.init(
             allowNull: false,
         },
         logo_url: {
-            type: DataTypes.TEXT,
+            type: DataTypes.TEXT('long'),
             allowNull: true,
         },
         revenue: {

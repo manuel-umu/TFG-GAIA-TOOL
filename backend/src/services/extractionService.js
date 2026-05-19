@@ -22,7 +22,7 @@ Para cada Data Point de la lista:
 1. Busca en el documento el valor o información que responde a ese indicador.
 2. Si lo encuentras, devuelve:
    - extracted_value: el valor extraído (formato según data_type)
-   - quote: la cita LITERAL y EXACTA del documento que lo respalda (copiada tal cual)
+   - quote: fragmento BREVE y literal del documento que lo respalda — MÁXIMO 25 palabras, solo la frase clave (NO copies párrafos enteros; si la evidencia es larga, recorta al fragmento esencial)
    - page_hint: número de página aproximado donde aparece (null si no lo puedes determinar)
    - confidence: tu nivel de seguridad entre 0.00 y 1.00
    - found: true
@@ -31,7 +31,7 @@ Para cada Data Point de la lista:
 ## Formato del campo extracted_value según data_type
 - "numeric"   → número como string, incluye unidades si el doc las menciona (ej: "12450 tCO2eq", "34.2 %")
 - "boolean"   → "true" o "false"
-- "narrative" → resumen del texto relevante, máximo 300 palabras
+- "narrative" → resumen conciso del texto relevante, máximo 150 palabras
 - "date"      → formato YYYY-MM-DD, o solo YYYY si el documento solo menciona el año
 - otro/null   → texto libre con el fragmento más relevante encontrado
 
@@ -81,7 +81,7 @@ Devuelve SOLO este JSON:
       "data_point_id": <id numérico del Data Point>,
       "found": <true | false>,
       "extracted_value": <string con el valor, o null>,
-      "quote": <cita literal exacta del documento, o null>,
+      "quote": <fragmento breve y literal, máx 25 palabras, o null>,
       "page_hint": <número de página aproximado, o null>,
       "confidence": <número entre 0.00 y 1.00>
     }

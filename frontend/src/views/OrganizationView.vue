@@ -644,9 +644,47 @@ export default {
     handleLogoChange(event) {
       const file = event.target.files[0];
       if (!file) return;
+      
+      const MIN_WIDTH = 500;
+      const MIN_HEIGHT = 300;
+
+      if (!file.type.startsWith('image/')) {
+        this.$buefy.snackbar.open({
+          message: 'The selected file must be an image.',
+          type: 'is-danger',
+          duration: 4000,
+        });
+        event.target.value = '';
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        this.logo_url = e.target.result;
+        const dataUrl = e.target.result;
+        const img = new Image();
+        img.onload = () => {
+          if (img.naturalWidth < MIN_WIDTH || img.naturalHeight < MIN_HEIGHT) {
+            this.$buefy.snackbar.open({
+              message: `Image too small (${img.naturalWidth}×${img.naturalHeight}px). ` +
+                `Minimum ${MIN_WIDTH}×${MIN_HEIGHT}px is required so the logo is not ` +
+                `pixelated on the report cover.`,
+              type: 'is-danger',
+              duration: 6000,
+            });
+            event.target.value = '';
+            return;
+          }
+          this.logo_url = dataUrl;
+        };
+        img.onerror = () => {
+          this.$buefy.snackbar.open({
+            message: 'Could not read the selected image.',
+            type: 'is-danger',
+            duration: 4000,
+          });
+          event.target.value = '';
+        };
+        img.src = dataUrl;
       };
       reader.readAsDataURL(file);
     },

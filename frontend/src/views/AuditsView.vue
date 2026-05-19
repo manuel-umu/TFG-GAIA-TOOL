@@ -256,6 +256,7 @@ export default {
           event: 'close',
           tooltip: 'Close audit',
           disabledCondition: (row) => {
+            if (row.state === 'Closed') return true;
             if (row.state === 'Evaluated') return false;
             if (row.framework_code && row.questionnaire_complete) return false;
             return true;

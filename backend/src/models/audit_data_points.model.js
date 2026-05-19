@@ -44,7 +44,7 @@ AuditDatapoints.init(
             defaultValue: true,
         },
         evidence_reference: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.TEXT,
             allowNull: true,
         },
         status: {

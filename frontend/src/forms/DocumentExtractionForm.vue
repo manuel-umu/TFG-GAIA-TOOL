@@ -377,6 +377,21 @@ export default {
       res.results.forEach(r => this.$set(r, 'included', newValue));
     },
 
+    // [AI] nombreDocumento.pdf, p.X: "<Cita>"
+    buildEvidence: function(r) {
+      const doc = (this.selectedDocument && this.selectedDocument.original_name) || 'document';
+      let ev = `[AI] ${doc}`;
+      if (r.page_hint !== null && r.page_hint !== undefined && r.page_hint !== '') {
+        ev += `, p.${r.page_hint}`;
+      }
+      if (r.quote) {
+        let q = String(r.quote).trim();
+        if (q.length > 300) q = q.slice(0, 300) + '…';
+        ev += `: "${q}"`;
+      }
+      return ev;
+    },
+
     finalizeStandard: async function(standard) {
       const results = this.extractionResults[standard.id];
       if (!results) return;
@@ -391,10 +406,11 @@ export default {
       try {
         await axiosInstance.post(`/audits/${this.id_audit}/questionnaire`, {
           data_points: toSave.map(r => ({
-            data_point_id: r.data_point_id,
-            value_text:    r.extracted_value,
-            is_applicable: true,
-            status:        'completed',
+            data_point_id:      r.data_point_id,
+            value_text:         r.extracted_value,
+            is_applicable:      true,
+            evidence_reference: this.buildEvidence(r),
+            status:             'completed',
           })),
         });
         this.$buefy.snackbar.open({
