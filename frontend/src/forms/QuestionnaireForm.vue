@@ -191,7 +191,7 @@
                     <b-input
                       type="number"
                       step="1"
-                      :value="localData[dp.id] ? localData[dp.id].value_numeric : ''"
+                      :value="localData[dp.id] ? localData[dp.id].value_text : ''"
                       :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
                       placeholder="0"
                       @input="setNumericValue(dp.id, $event)"
@@ -205,7 +205,7 @@
                     <b-input
                       type="number"
                       step="0.01"
-                      :value="localData[dp.id] ? localData[dp.id].value_numeric : ''"
+                      :value="localData[dp.id] ? localData[dp.id].value_text : ''"
                       :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
                       placeholder="0.00"
                       expanded
@@ -226,7 +226,7 @@
                     <b-input
                       type="number"
                       step="0.01"
-                      :value="localData[dp.id] ? localData[dp.id].value_numeric : ''"
+                      :value="localData[dp.id] ? localData[dp.id].value_text : ''"
                       :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
                       placeholder="0.00"
                       expanded
@@ -241,7 +241,7 @@
                     <b-input
                       type="number"
                       step="0.01"
-                      :value="localData[dp.id] ? localData[dp.id].value_numeric : ''"
+                      :value="localData[dp.id] ? localData[dp.id].value_text : ''"
                       :disabled="localData[dp.id] && !localData[dp.id].is_applicable"
                       placeholder="0.00"
                       @input="setNumericValue(dp.id, $event)"
@@ -325,7 +325,6 @@ export default {
       isLoading: false,
       isSaving: false,
       standards: [],
-      // { [data_point_id]: { value_text, value_numeric, is_applicable, evidence_reference, status } }
       localData: {},
       // Controla si el campo de evidencia está expandido para cada dp
       evidenceOpen: {},
@@ -359,8 +358,7 @@ export default {
               return;
             }
             const hasText = entry.value_text !== null && entry.value_text !== '' && entry.value_text !== undefined;
-            const hasNumeric = entry.value_numeric !== null && entry.value_numeric !== '' && entry.value_numeric !== undefined;
-            if (hasText || hasNumeric) filled++;
+            if (hasText) filled++;
           });
         });
         return { filled, total };
@@ -389,7 +387,6 @@ export default {
               if (resp) {
                 localData[dp.id] = {
                   value_text: resp.value_text !== undefined ? resp.value_text : null,
-                  value_numeric: resp.value_numeric !== undefined ? resp.value_numeric : null,
                   is_applicable: resp.is_applicable !== undefined ? resp.is_applicable : true,
                   evidence_reference: resp.evidence_reference !== undefined ? resp.evidence_reference : null,
                   status: resp.status === 'completed' ? 'completed' : 'pending',
@@ -401,7 +398,6 @@ export default {
               } else {
                 localData[dp.id] = {
                   value_text: null,
-                  value_numeric: null,
                   is_applicable: true,
                   evidence_reference: null,
                   status: 'pending',
@@ -443,7 +439,10 @@ export default {
     },
 
     setNumericValue: function (dpId, value) {
-      this.markEdited(dpId, 'value_numeric', value !== '' && value !== null && value !== undefined ? value : null);
+      // Guardamos el valor numérico en value_text (como string) para unificar
+      // el almacenamiento con el resto de tipos y con lo que devuelve la IA.
+      const normalized = value !== '' && value !== null && value !== undefined ? String(value) : null;
+      this.markEdited(dpId, 'value_text', normalized);
     },
 
     setBooleanValue: function (dpId, value) {
@@ -482,8 +481,7 @@ export default {
           const entry = this.localData[dp.id];
           if (!entry || !entry.is_applicable) return;
           const hasText = entry.value_text !== null && entry.value_text !== '' && entry.value_text !== undefined;
-          const hasNumeric = entry.value_numeric !== null && entry.value_numeric !== '' && entry.value_numeric !== undefined;
-          if (!hasText && !hasNumeric) candidates.push(dp.id);
+          if (!hasText) candidates.push(dp.id);
         });
       });
 
@@ -539,19 +537,17 @@ export default {
         const dpId = Number(id);
         const hadPrev = this.hadPreviousResponse[dpId];
         const hasText = entry.value_text !== null && entry.value_text !== '' && entry.value_text !== undefined;
-        const hasNumeric = entry.value_numeric !== null && entry.value_numeric !== '' && entry.value_numeric !== undefined;
         const notApplicable = !entry.is_applicable;
         const hasEvidence = entry.evidence_reference !== null && entry.evidence_reference !== '' && entry.evidence_reference !== undefined;
 
         // Incluir si: tiene valor rellenado, está marcado N/A, ya tenía respuesta previa
-        if (hasText || hasNumeric || notApplicable || hasEvidence || hadPrev) {
+        if (hasText || notApplicable || hasEvidence || hadPrev) {
           dataPoints.push({
             data_point_id: dpId,
             value_text: entry.value_text || null,
-            value_numeric: entry.value_numeric || null,
             is_applicable: entry.is_applicable,
             evidence_reference: entry.evidence_reference || null,
-            status: (hasText || hasNumeric || notApplicable) ? 'completed' : 'pending',
+            status: (hasText || notApplicable) ? 'completed' : 'pending',
           });
         }
       });

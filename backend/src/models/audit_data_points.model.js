@@ -34,10 +34,6 @@ AuditDatapoints.init(
             type: DataTypes.TEXT,
             allowNull: true,
         },
-        value_numeric: {
-            type: DataTypes.DECIMAL(15, 4),
-            allowNull: true,
-        },
         is_applicable: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
