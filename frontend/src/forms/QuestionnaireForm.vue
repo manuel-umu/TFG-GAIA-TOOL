@@ -108,6 +108,26 @@
                   >
                     Conditional
                   </b-tag>
+                  <b-tooltip
+                    v-if="dp.phased_in_appendix_c"
+                    label="Phased-in (ESRS 1 Appendix C): May be omitted during the first year of CSRD application."
+                    position="is-top"
+                    multilined
+                  >
+                    <b-tag type="is-light" size="is-small" class="dp-tag">
+                      Optional Year 1
+                    </b-tag>
+                  </b-tooltip>
+                  <b-tooltip
+                    v-if="dp.phased_in_750"
+                    label="Exempt for undertakings with up to 750 employees during the transitional period."
+                    position="is-top"
+                    multilined
+                  >
+                    <b-tag type="is-success is-light" size="is-small" class="dp-tag">
+                      ≤750 exempt
+                    </b-tag>
+                  </b-tooltip>
                   <span class="dp-official-id">{{ dp.official_id }}</span>
                   <div
                     v-if="dp.paragraph_ref || dp.cross_reference || dp.link"
@@ -748,7 +768,7 @@ export default {
   cursor: pointer;
   padding: 4px;
   border-radius: 50%;
-  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  transition: background-color 0.08s ease, color 0.08s ease, transform 0.08s ease;
 }
 
 .dp-info-icon:hover {

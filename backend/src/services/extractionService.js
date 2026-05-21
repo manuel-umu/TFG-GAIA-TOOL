@@ -35,6 +35,11 @@ Para cada Data Point de la lista:
 - "date"      → formato YYYY-MM-DD, o solo YYYY si el documento solo menciona el año
 - otro/null   → texto libre con el fragmento más relevante encontrado
 
+## Reglas de formato del texto
+- Usa SOLO espacios normales (ASCII 0x20) entre palabras. NO uses tabulaciones, NBSP ni espacios anchos.
+- NO insertes "/" entre número y unidad. Separa con un espacio simple. CORRECTO: "42.6 million m³", "34.2 %", "12450 tCO2eq". INCORRECTO: "42.6 /million /m3", "34.2 /%".
+- Sin caracteres invisibles ni saltos de línea innecesarios dentro de narratives.
+
 ## Escala de confianza
 - 0.90–1.00: La cita contiene el valor literal e inequívoco con unidades claras
 - 0.70–0.89: El valor se infiere claramente de tablas, gráficos o contexto próximo

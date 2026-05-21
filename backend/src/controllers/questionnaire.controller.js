@@ -66,6 +66,8 @@ async function get_questionnaire(req, res) {
                 data_type: dp.data_type,
                 is_voluntary: dp.is_voluntary,
                 is_conditional: dp.is_conditional,
+                phased_in_750: dp.phased_in_750,
+                phased_in_appendix_c: dp.phased_in_appendix_c,
                 paragraph_ref: dp.paragraph_ref,
                 related_ar: dp.related_ar,
                 cross_reference: dp.cross_reference,

@@ -182,9 +182,14 @@ async function extract_datapoints(req, res) {
         const auditId = parseInt(id, 10);
         const docId = parseInt(source_document_id, 10);
 
+        const cleaned = extractions.map(e => ({
+            ...e,
+            extracted_value: cleanExtractedValue(e.extracted_value),
+        }));
+
         // Guardar o actualizar valores en AuditDatapoint
         await AuditDatapoint.bulkCreate(
-            extractions.map(e => ({
+            cleaned.map(e => ({
                 audit_id:      auditId,
                 data_point_id: e.data_point_id,
                 value_text:    e.extracted_value,
@@ -198,7 +203,7 @@ async function extract_datapoints(req, res) {
 
         // Insertar fuentes en DataPointSource
         await DataPointSource.bulkCreate(
-            extractions.map(e => ({
+            cleaned.map(e => ({
                 audit_id:          auditId,
                 data_point_id:     e.data_point_id,
                 source_document_id: docId,
@@ -248,6 +253,16 @@ async function delete_document(req, res) {
         console.error('Document delete error:', error);
         return res.status(500).json({ error:'Internal server error'});
     }
+}
+
+function cleanExtractedValue(value) {
+    if (typeof value !== 'string') return value;
+    return value
+        .replace(/[    ]/g, ' ')        // Caracteres invisibles
+        .replace(/[​‌‍﻿]/g, '')           // Caracteres raros pequeños
+        .replace(/ \/(\S)/g, ' $1')     // Separacion de unidades, para que no se peguen al numero
+        .replace(/[ \t]+/g, ' ')        // Espacios duplicados, tabulaciones, etc
+        .trim();
 }
 
 // Extrae el texto plano de un fichero en memoria segun su mimetype (formato).

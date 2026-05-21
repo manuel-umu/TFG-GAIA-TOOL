@@ -14,7 +14,7 @@ const seedCSRD = require('../seeds/seedCSRD.js');
 async function initialize() {
     try{
         console.log('Inicializando initialize');
-        await sequelize.sync({ alter: true });
+        //await sequelize.sync({ alter: true });
         
         const Framework = require('../models/framework.model.js');
         const existingFramework = await Framework.findOne({ where: { code: 'CSRD' } });

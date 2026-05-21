@@ -48,6 +48,115 @@ const STANDARD_DESCRIPTIONS = {
     'G1': 'Corporate culture, whistleblower protection, supplier relationships (including payment practices), prevention and detection of corruption and bribery, and political influence.',
 };
 
+// Nombres oficiales de cada Disclosure Requirement (Delegated Regulation EU 2023/2772, Annex I)
+const DR_NAMES = {
+    // ESRS 2 — General disclosures
+    'BP-1': 'General basis for preparation of sustainability statements',
+    'BP-2': 'Disclosures in relation to specific circumstances',
+    'GOV-1': 'The role of the administrative, management and supervisory bodies',
+    'GOV-2': 'Information provided to and sustainability matters addressed by the undertaking\'s administrative, management and supervisory bodies',
+    'GOV-3': 'Integration of sustainability-related performance in incentive schemes',
+    'GOV-4': 'Statement on due diligence',
+    'GOV-5': 'Risk management and internal controls over sustainability reporting',
+    'SBM-1': 'Strategy, business model and value chain',
+    'SBM-2': 'Interests and views of stakeholders',
+    'SBM-3': 'Material impacts, risks and opportunities and their interaction with strategy and business model',
+    'IRO-1': 'Description of the processes to identify and assess material impacts, risks and opportunities',
+    'IRO-2': 'Disclosure Requirements in ESRS covered by the undertaking\'s sustainability statement',
+    // ESRS 2 — Minimum Disclosure Requirements (MDR)
+    'MDR-P': 'Policies adopted to manage material sustainability matters',
+    'MDR-A': 'Actions and resources in relation to material sustainability matters',
+    'MDR-M': 'Metrics in relation to material sustainability matters',
+    'MDR-T': 'Tracking effectiveness of policies and actions through targets',
+    // E1 — Climate change
+    'E1-1': 'Transition plan for climate change mitigation',
+    'E1-2': 'Policies related to climate change mitigation and adaptation',
+    'E1-3': 'Actions and resources in relation to climate change policies',
+    'E1-4': 'Targets related to climate change mitigation and adaptation',
+    'E1-5': 'Energy consumption and mix',
+    'E1-6': 'Gross Scopes 1, 2, 3 and Total GHG emissions',
+    'E1-7': 'GHG removals and GHG mitigation projects financed through carbon credits',
+    'E1-8': 'Internal carbon pricing',
+    'E1-9': 'Anticipated financial effects from material physical and transition risks and potential climate-related opportunities',
+    // E2 — Pollution
+    'E2-1': 'Policies related to pollution',
+    'E2-2': 'Actions and resources related to pollution',
+    'E2-3': 'Targets related to pollution',
+    'E2-4': 'Pollution of air, water and soil',
+    'E2-5': 'Substances of concern and substances of very high concern',
+    'E2-6': 'Anticipated financial effects from pollution-related impacts, risks and opportunities',
+    // E3 — Water and marine resources
+    'E3-1': 'Policies related to water and marine resources',
+    'E3-2': 'Actions and resources related to water and marine resources',
+    'E3-3': 'Targets related to water and marine resources',
+    'E3-4': 'Water consumption',
+    'E3-5': 'Anticipated financial effects from water and marine resources-related impacts, risks and opportunities',
+    // E4 — Biodiversity and ecosystems
+    'E4-1': 'Transition plan and consideration of biodiversity and ecosystems in strategy and business model',
+    'E4-2': 'Policies related to biodiversity and ecosystems',
+    'E4-3': 'Actions and resources related to biodiversity and ecosystems',
+    'E4-4': 'Targets related to biodiversity and ecosystems',
+    'E4-5': 'Impact metrics related to biodiversity and ecosystems change',
+    'E4-6': 'Anticipated financial effects from biodiversity and ecosystem-related impacts, risks and opportunities',
+    // E5 — Resource use and circular economy
+    'E5-1': 'Policies related to resource use and circular economy',
+    'E5-2': 'Actions and resources related to resource use and circular economy',
+    'E5-3': 'Targets related to resource use and circular economy',
+    'E5-4': 'Resource inflows',
+    'E5-5': 'Resource outflows',
+    'E5-6': 'Anticipated financial effects from resource use and circular economy-related impacts, risks and opportunities',
+    // S1 — Own workforce
+    'S1-1': 'Policies related to own workforce',
+    'S1-2': 'Processes for engaging with own workforce and workers\' representatives about impacts',
+    'S1-3': 'Processes to remediate negative impacts and channels for own workforce to raise concerns',
+    'S1-4': 'Taking action on material impacts on own workforce, and approaches to managing material risks and pursuing material opportunities related to own workforce, and effectiveness of those actions',
+    'S1-5': 'Targets related to managing material negative impacts, advancing positive impacts, and managing material risks and opportunities',
+    'S1-6': 'Characteristics of the undertaking\'s employees',
+    'S1-7': 'Characteristics of non-employee workers in the undertaking\'s own workforce',
+    'S1-8': 'Collective bargaining coverage and social dialogue',
+    'S1-9': 'Diversity metrics',
+    'S1-10': 'Adequate wages',
+    'S1-11': 'Social protection',
+    'S1-12': 'Persons with disabilities',
+    'S1-13': 'Training and skills development metrics',
+    'S1-14': 'Health and safety metrics',
+    'S1-15': 'Work-life balance metrics',
+    'S1-16': 'Compensation metrics (pay gap and total compensation)',
+    'S1-17': 'Incidents, complaints and severe human rights impacts',
+    // S2 — Workers in the value chain
+    'S2-1': 'Policies related to value chain workers',
+    'S2-2': 'Processes for engaging with value chain workers about impacts',
+    'S2-3': 'Processes to remediate negative impacts and channels for value chain workers to raise concerns',
+    'S2-4': 'Taking action on material impacts on value chain workers, and approaches to managing material risks and pursuing material opportunities related to value chain workers, and effectiveness of those actions',
+    'S2-5': 'Targets related to managing material negative impacts, advancing positive impacts, and managing material risks and opportunities',
+    // S3 — Affected communities
+    'S3-1': 'Policies related to affected communities',
+    'S3-2': 'Processes for engaging with affected communities about impacts',
+    'S3-3': 'Processes to remediate negative impacts and channels for affected communities to raise concerns',
+    'S3-4': 'Taking action on material impacts on affected communities, and approaches to managing material risks and pursuing material opportunities related to affected communities, and effectiveness of those actions',
+    'S3-5': 'Targets related to managing material negative impacts, advancing positive impacts, and managing material risks and opportunities',
+    // S4 — Consumers and end-users
+    'S4-1': 'Policies related to consumers and end-users',
+    'S4-2': 'Processes for engaging with consumers and end-users about impacts',
+    'S4-3': 'Processes to remediate negative impacts and channels for consumers and end-users to raise concerns',
+    'S4-4': 'Taking action on material impacts on consumers and end-users, and approaches to managing material risks and pursuing material opportunities related to consumers and end-users, and effectiveness of those actions',
+    'S4-5': 'Targets related to managing material negative impacts, advancing positive impacts, and managing material risks and opportunities',
+    // G1 — Business conduct
+    'G1-1': 'Corporate culture and business conduct policies',
+    'G1-2': 'Management of relationships with suppliers',
+    'G1-3': 'Prevention and detection of corruption and bribery',
+    'G1-4': 'Incidents of corruption or bribery',
+    'G1-5': 'Political influence and lobbying activities',
+    'G1-6': 'Payment practices',
+};
+
+// Algunos Excels EFRAG prefijan los DRs de ESRS 2 (por ej: "ESRS 2 GOV-1")
+function resolveDrName(drCode) {
+    if (DR_NAMES[drCode]) return DR_NAMES[drCode];
+    const stripped = drCode.replace(/^ESRS\s+\S+\s+/i, '');
+    return DR_NAMES[stripped] || drCode;
+}
+
 async function seed() {
     console.log('Iniciando seed de datos EFRAG...');
     console.log('Ruta del Excel:', EXCEL_PATH);
@@ -116,10 +225,11 @@ async function seed() {
 
             // DisclosureRequirements
             for (const disclosureRequirementData of standardData.disclosureRequirements) {
+                const officialName = resolveDrName(disclosureRequirementData.code);
                 const [dr, drCreated] = await DisclosureRequirement.findOrCreate({
                     where: { standard_id: standard.id, code: disclosureRequirementData.code },
                     defaults: {
-                        name: disclosureRequirementData.name,
+                        name: officialName,
                         sort_order: disclosureRequirementData.sort_order,
                     },
                     transaction,

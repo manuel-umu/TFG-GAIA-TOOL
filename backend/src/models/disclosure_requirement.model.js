@@ -27,7 +27,7 @@ DisclosureRequirement.init(
       allowNull: false,
     },
     name: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.TEXT,
       allowNull: false,
     },
     sort_order: {
