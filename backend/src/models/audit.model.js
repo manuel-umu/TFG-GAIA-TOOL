@@ -39,10 +39,6 @@ Audit.init(
       type: DataTypes.SMALLINT.UNSIGNED,
       allowNull: true,
     },
-    logo: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
     framework_version_id: {
       type: DataTypes.SMALLINT.UNSIGNED,
       allowNull: true,

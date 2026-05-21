@@ -585,10 +585,9 @@ export default {
 }
 .result-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-bottom: 4px;
-  flex-wrap: nowrap;
   min-width: 0;
 }
 .result-name {
@@ -597,9 +596,7 @@ export default {
   color: #363636;
   flex: 1;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 .result-code {
   flex-shrink: 0;

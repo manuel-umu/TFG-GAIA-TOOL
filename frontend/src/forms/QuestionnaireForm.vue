@@ -645,11 +645,7 @@ export default {
 }
 
 .questionnaire-tabs >>> nav.tabs {
-  position: sticky;
-  top: 80px;
   align-self: flex-start;
-  max-height: calc(100vh - 96px);
-  overflow-y: auto;
 }
 
 .tab-label-code {

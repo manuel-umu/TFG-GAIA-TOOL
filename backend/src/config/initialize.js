@@ -23,6 +23,7 @@ async function initialize() {
         } else {
             console.log('Framework CSRD ya existe, seed omitido.');
         }
+        const admin = await User.findOne({ where: { username: process.env.ADMIN_USERNAME } });
         // Usuario evaluador de prueba
         let evaluator = await User.findOne({ where: { username: 'ev1' } });
         if (!evaluator) {
@@ -51,63 +52,6 @@ async function initialize() {
             console.log('Organization created');
         }
 
-        // Factores críticos
-        const factorNames = [
-            'Eficiencia energética',
-            'Calidad del producto',
-            'Bienestar del talento',
-        ];
-        const factors = [];
-        for (const name of factorNames) {
-            const [factor] = await Factor.findOrCreate({
-                where: { name, organization: org.id },
-                defaults: { name, organization: org.id },
-            });
-            factors.push(factor);
-        }
-
-        // Indicadores
-        const indicatorDefs = [
-            { name: 'Consumo eléctrico', dimension: 'Ambiental', formula: 'kWh totales en el periodo', goal: 'Minimize', measure: 'kWh', frequency: 'Monthly' },
-            { name: 'Densidad de defectos', dimension: 'Técnica', formula: 'Número de defectos / KLOC', goal: 'Minimize', measure: 'def/KLOC', frequency: 'Monthly' },
-            { name: 'Cobertura de tests', dimension: 'Técnica', formula: 'Líneas cubiertas / líneas totales * 100', goal: 'Maximize', measure: '%', frequency: 'Weekly' },
-        ];
-        const indicators = [];
-        for (const def of indicatorDefs) {
-            const [indicator] = await Indicator.findOrCreate({
-                where: { name: def.name },
-                defaults: def,
-            });
-            indicators.push(indicator);
-        }
-
-        const admin = await User.findOne({ where: { username: process.env.ADMIN_USERNAME } });
-
-        // Proceso de negocio
-        let businessProcess = await Process.findOne({ where: { name: 'Produccion de Software' } });
-        if (!businessProcess) {
-            businessProcess = await Process.create({
-                name: 'Produccion de Software',
-                type: 'Key',
-                description: 'Desarrollo, testing y entrega de software.',
-                responsible: admin.id,
-            });
-            console.log('Process created');
-        }
-
-        // Vincular cada indicador al proceso con su factor critico correspondiente
-        const links = [
-            { indicator: indicators[0], factor: factors[0] },
-            { indicator: indicators[1], factor: factors[1] },
-            { indicator: indicators[2], factor: factors[1] },
-        ];
-        for (const { indicator, factor } of links) {
-            await ProcessIndicatorFactor.findOrCreate({
-                where: { process: businessProcess.id, indicator: indicator.id, factor: factor.id },
-                defaults: { process: businessProcess.id, indicator: indicator.id, factor: factor.id },
-            });
-        }
-
         // Auditoria
         let audit = await Audit.findOne({ where: { name: 'Auditoria1' } });
         if (!audit) {
@@ -121,15 +65,21 @@ async function initialize() {
                 organization: org.id,
                 manager: admin.id,
                 auditor: evaluator.id,
-                framework_version_id: null,
+                framework_version_id: 1,
                 reporting_year: 2025,
             });
-            console.log('Audit created');
+            console.log('Audit created.');
         }
 
         console.log('Data seed completed.');
     }catch(error){
-        console.log("Algo ha pasado en el initialize " + error);
+        console.log("Algo ha pasado en el initialize");
+        console.log("  Mensaje:", error.message);
+        if (error.errors) {
+            // SequelizeValidationError / UniqueConstraintError trae array con detalles por campo
+            error.errors.forEach(e => console.log(`  Campo: ${e.path}, valor: ${e.value}, motivo: ${e.message}`));
+        }
+        console.log("  Stack:", error.stack);
     }
 
 }

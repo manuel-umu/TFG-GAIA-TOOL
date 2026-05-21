@@ -1,20 +1,20 @@
 const { Op } = require("sequelize");
 
-const Audit = require("../../models/audit.model.js");
-const Organization = require("../../models/organization.model.js");
-const User = require("../../models/user.model.js");
-const FrameworkVersion = require("../../models/framework_version.model.js");
-const Framework = require("../../models/framework.model.js");
-const Standard = require("../../models/standard.model.js");
-const AuditStandard = require("../../models/audit_standard.model.js");
-const DisclosureRequirement = require("../../models/disclosure_requirement.model.js");
-const DataPoint = require("../../models/data_point.model.js");
-const AuditDatapoints = require("../../models/audit_data_points.model.js");
+const Audit = require("../models/audit.model.js");
+const Organization = require("../models/organization.model.js");
+const User = require("../models/user.model.js");
+const FrameworkVersion = require("../models/framework_version.model.js");
+const Framework = require("../models/framework.model.js");
+const Standard = require("../models/standard.model.js");
+const AuditStandard = require("../models/audit_standard.model.js");
+const DisclosureRequirement = require("../models/disclosure_requirement.model.js");
+const DataPoint = require("../models/data_point.model.js");
+const AuditDatapoints = require("../models/audit_data_points.model.js");
 
 // Devuelve toda la informacion para generar el pdf de la CSRD
 async function getReportData(auditId) {
   // Auditoria
-  const audit = await Audit.findOne({ where: { auditId } });
+  const audit = await Audit.findByPk(auditId);
   if (!audit) {
     const error = new Error("Audit not found");
     error.statusCode = 404;
@@ -174,6 +174,7 @@ async function getReportData(auditId) {
           id: s.id,
           code: s.code,
           name: s.name,
+          description: s.description,
           category: s.category,
           disclosure_requirements: drs,
           has_content: drs.length > 0,

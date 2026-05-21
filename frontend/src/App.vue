@@ -253,6 +253,10 @@ export default {
   display: block !important;
 }
 
+.custom-dropdown .dropdown-menu {
+  z-index: 50;
+}
+
 .dropdown-item {
   padding-right: 1rem !important;
 }

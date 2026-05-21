@@ -27,9 +27,13 @@ Standard.init(
       type: DataTypes.STRING(30),
       allowNull: false,
     },
-    name: {  // Ejemplo: Cambio climatico 
+    name: {  // Ejemplo: Cambio climatico
       type: DataTypes.STRING(100),
       allowNull: false,
+    },
+    description: { // Resumen de lo que trata el estandar
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
     category: {//Environmental, Social...
       type: DataTypes.STRING(100),

@@ -480,24 +480,238 @@ export default {
       doc.save("ahp-sustainability-report.pdf");
     },
     async exportCsrdPDF(row) {
-      try {
-        this.loadingRowId = row.id;
-        const { data } = await axiosInstance.get(`/audits/${row.id}/report`, {
-          responseType: 'blob',
-        });
-        const blob = new Blob([data], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `csrd-report-${row.id}.pdf`;
-        link.click();
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Error downloading CSRD report:', error);
-        this.showError('Could not generate the CSRD report. Please try again.');
-      } finally {
-        this.loadingRowId = null;
+      this.loadingRowId = row.id;
+      const { data } = await axiosInstance.get(`/audits/${row.id}/report/data`);
+      const doc = new jsPDF('p', 'pt');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const centerX = pageWidth / 2;
+
+      // --- PORTADA ---
+      if (data.organization.logo_url) {
+        const w = pageWidth * 0.5;
+        doc.addImage(data.organization.logo_url, centerX - w / 2, 30, w, 200);
+      } else {
+        doc.setFont("times", "bold");
+        doc.setFontSize(36);
+        doc.setTextColor("#98A869");
+        doc.text("GAIA-TOOL", centerX, 200, { align: "center" });
       }
+
+      doc.setFont("times", "bold");
+      doc.setFontSize(30);
+      doc.setTextColor("#98A869");
+      doc.text("Sustainability Statement", centerX, 380, { align: "center" });
+      doc.text("under CSRD", centerX, 420, { align: "center" });
+
+      doc.setFontSize(18);
+      doc.setTextColor("#000000");
+      doc.text(data.organization.name, centerX, 470, { align: "center" });
+
+      if (data.audit.reporting_year) {
+        doc.setFont("times", "normal");
+        doc.setFontSize(14);
+        doc.setTextColor("#555555");
+        doc.text(`Fiscal Year ${data.audit.reporting_year}`, centerX, 500, { align: "center" });
+      }
+
+      doc.setFont("times", "italic");
+      doc.setFontSize(11);
+      doc.setTextColor("#666666");
+      doc.text("Prepared in accordance with the", centerX, 540, { align: "center" });
+      doc.text("European Sustainability Reporting Standards (ESRS)", centerX, 558, { align: "center" });
+
+      // Footer portada
+      doc.setDrawColor("#98A869");
+      doc.setLineWidth(2);
+      doc.line(40, 780, pageWidth - 40, 780);
+      doc.setFont("times", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor("#444444");
+      const colW = (pageWidth - 80) / 3;
+      doc.text(`Auditor: ${data.auditor.name}`, 40 + colW * 0.5, 798, { align: "center" });
+      doc.text(`Manager: ${data.manager.name}`, 40 + colW * 1.5, 798, { align: "center" });
+      doc.text(`Generated: ${this.formatReportDate(data.generatedAt)}`, 40 + colW * 2.5, 798, { align: "center" });
+
+      // --- INFORMACION GENERAL ---
+      doc.addPage();
+      let y = 50;
+      doc.setFont("times", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor("#000000");
+      doc.text("1. Audit Information", 40, y);
+      y += 22;
+
+      doc.setFont("times", "normal");
+      doc.setFontSize(12);
+      doc.text(`Name: ${data.audit.name}`, 40, y);
+      y += 18;
+      if (data.audit.description) {
+        y = this.addJustifiedText(doc, `Description: ${data.audit.description}`, 40, y, pageWidth - 80, 18);
+        y += 6;
+      }
+      doc.text(`Organization: ${data.organization.name}`, 40, y); y += 18;
+      doc.text(`Auditor: ${data.auditor.name}`, 40, y); y += 18;
+      doc.text(`Manager: ${data.manager.name}`, 40, y); y += 18;
+      doc.text(`Framework: ${data.framework.code}`, 40, y); y += 18;
+      doc.text(`Period: ${this.formatReportDate(data.audit.init_date)} - ${this.formatReportDate(data.audit.end_date)}`, 40, y);
+      y += 30;
+
+      // --- DOBLE MATERIALIDAD ---
+      doc.setFont("times", "bold");
+      doc.setFontSize(14);
+      doc.text("2. Double Materiality Assessment", 40, y);
+      y += 16;
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Code", "Standard", "Category", "Mandatory", "Materiality", "Justification"]],
+        body: data.materiality.standards.map(s => [
+          s.code,
+          s.name,
+          s.category || "-",
+          s.is_mandatory ? "Yes" : "No",
+          s.assessment.is_material ? "Material" : "Not material",
+          s.assessment.justification || "-",
+        ]),
+        theme: "grid",
+        headStyles: { fillColor: [152, 168, 105], textColor: 0, fontStyle: "bold" },
+        styles: { font: "times", fontSize: 9, cellPadding: 4, overflow: "linebreak" },
+        columnStyles: {
+          0: { cellWidth: 45 },
+          1: { cellWidth: 80 },
+          2: { cellWidth: 70 },
+          3: { cellWidth: 55 },
+          4: { cellWidth: 60 },
+          5: { cellWidth: 210 },
+        },
+        margin: { left: 40, right: 40 },
+      });
+      y = doc.lastAutoTable.finalY;
+
+      // --- DATAPOINTS ---
+      if (y > 500) {
+        doc.addPage();
+        y = 50;
+      } else {
+        y += 40;
+      }
+
+      doc.setFont("times", "bold");
+      doc.setFontSize(14);
+      doc.text("3. CSRD DataPoints", 40, y);
+      y += 22;
+
+      data.questionnaire.standards.filter(s => s.has_content).forEach(std => {
+        if (y > 700) { 
+          doc.addPage(); 
+          y = 50; 
+        }
+        doc.setFont("times", "bold");
+        doc.setFontSize(12);
+        doc.text(`${std.code} — ${std.name}`, 40, y);
+        y += 14;
+
+        if (std.description) {
+          doc.setFont("times", "italic");
+          doc.setFontSize(9.5);
+          doc.setTextColor("#555555");
+          y = this.addJustifiedText(doc, std.description, 40, y, pageWidth - 80, 13);
+          doc.setTextColor("#000000");
+          y += 8;
+        }
+
+        std.disclosure_requirements.forEach(dr => {
+          if (y > 750) { 
+            doc.addPage(); 
+            y = 50; 
+          }
+          doc.setFont("times", "italic");
+          doc.setFontSize(11);
+          doc.text(`${dr.code} — ${dr.name}`, 40, y);
+
+          if (dr.reported_data_points.length > 0) {
+            y += 8;
+            autoTable(doc, {
+              startY: y + 6,
+              head: [["ID", "DataPoint", "Type", "Value", "Evidence", "Status"]],
+              body: dr.reported_data_points.map(dp => [
+                dp.official_id,
+                dp.name,
+                dp.data_type,
+                this.formatDataPointValue(dp.response, dp.data_type),
+                dp.response?.evidence_reference || "-",
+                dp.response?.status || "-",
+              ]),
+              theme: "grid",
+              headStyles: { fillColor: [152, 168, 105], textColor: 0, fontStyle: "bold" },
+              styles: { font: "times", fontSize: 8.5, cellPadding: 3, overflow: "linebreak" },
+              columnStyles: {
+                0: { cellWidth: 45 },
+                1: { cellWidth: 120 },
+                2: { cellWidth: 40 },
+                3: { cellWidth: 210 },
+                4: { cellWidth: 60 },
+                5: { cellWidth: 45 },
+              },
+              margin: { left: 40, right: 40 },
+            });
+            y = doc.lastAutoTable.finalY;
+          }
+          if (dr.na_data_points.length > 0) {
+            y += 12;
+            doc.setFont("times", "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor("#888888");
+            doc.text("Not applicable to this organization", 40, y);
+            doc.setTextColor("#000000");
+
+            autoTable(doc, {
+              startY: y + 4,
+              head: [["ID", "DataPoint", "Reason"]],
+              body: dr.na_data_points.map(dp => [
+                dp.official_id,
+                dp.name,
+                dp.response?.value_text || "Not applicable",
+              ]),
+              theme: "grid",
+              headStyles: { fillColor: [216, 221, 202], textColor: 0, fontStyle: "bold" },
+              styles: { font: "times", fontSize: 8, cellPadding: 3, textColor: [119, 119, 119], overflow: "linebreak" },
+              columnStyles: {
+                0: { cellWidth: 45 },
+                1: { cellWidth: 240 },
+                2: { cellWidth: 235 },
+              },
+              margin: { left: 40, right: 40 },
+            });
+            y = doc.lastAutoTable.finalY;
+          }
+          y += 20;
+        });
+
+        y += 10;
+      });
+
+      this.loadingRowId = null;
+      doc.save(`csrd-report-${row.id}.pdf`);
+    },
+    formatReportDate(value) {
+      if (!value) return "-";
+      const d = new Date(value);
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      return `${dd}/${mm}/${d.getFullYear()}`;
+    },
+    formatDataPointValue(response, dataType) {
+      if (!response || !response.value_text) return "-";
+      const v = response.value_text;
+      if (dataType === "boolean") return v === true || v === "true" ? "Yes" : "No";
+      const numericTypes = ["integer", "numeric", "percent", "monetary", "decimal", "value"];
+      if (numericTypes.includes(dataType)) {
+        const num = Number(v);
+        if (Number.isNaN(num)) return String(v);
+        return num.toLocaleString("en-US", { maximumFractionDigits: 2 }) + (dataType === "percent" ? " %" : "");
+      }
+      return String(v);
     },
     addJustifiedText: function(doc, text, x, y, maxWidth, lineHeight) {
       const paragraphs = text.split('\n'); // separar por párrafos
