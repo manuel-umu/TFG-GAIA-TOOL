@@ -1,6 +1,6 @@
 <template>
   <section class="custom-section">
-    <div v-if="action !== 'evaluate' && action !== 'materiality' && action !== 'questionnaire' && action !== 'extraction'">
+    <div v-if="action !== 'evaluate' && action !== 'materiality' && action !== 'questionnaire' && action !== 'extraction' && action !== 'validation'">
       <Header
         title="Audits"
         :perPage="perPage"
@@ -103,6 +103,15 @@
         @back-to-questionnaire="action = 'questionnaire'"
       />
     </div>
+    <div v-else-if="action === 'validation'">
+      <ValidationForm
+        :action="action"
+        :id_audit="id_audit"
+        @remove-action="action = ''"
+        @remove-id-audit="id_audit = null"
+        @finished-actions-for-audit="getMyAudits"
+      />
+    </div>
     <div v-else>
       <MaterialityForm
         :action="action"
@@ -125,6 +134,7 @@ import EvaluationForm from '@/forms/EvaluationForm.vue';
 import MaterialityForm from '@/forms/MaterialityForm.vue';
 import QuestionnaireForm from '@/forms/QuestionnaireForm.vue';
 import DocumentExtractionForm from '@/forms/DocumentExtractionForm.vue';
+import ValidationForm from '@/forms/ValidationForm.vue';
 
 export default {
   name: 'AuditsView',
@@ -137,6 +147,7 @@ export default {
     MaterialityForm,
     QuestionnaireForm,
     DocumentExtractionForm,
+    ValidationForm,
   },
   data() {
     return {
@@ -404,6 +415,11 @@ export default {
       }     
     },
     closeAudit: async function(row) {
+      if (row.framework_code) {
+        this.id_audit = row.id;
+        this.action = 'validation';
+        return;
+      }
       try {
         const response = await axiosInstance.post(`/audits/${row.id}/close`)
         if (response.status == 200) {

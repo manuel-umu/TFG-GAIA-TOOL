@@ -678,47 +678,34 @@ async function evaluate_audit(req, res) {
 
 async function close_audit(req, res) {
     const { id } = req.params;
-
     try {
         const audit = await Audits.findOne({ where: { id } });
         if (!audit) {
             return res.status(404).json({ error: 'Audit not found' });
         }
-        if (audit.state === 'Evaluated') {
-            // OK — auditoría AHP ya evaluada, puede cerrarse
-        } else if (audit.framework_version_id) {
-            // Auditoría CSRD: verificar que todos los datapoints aplicables están completados/validados
-            const pendingDPs = await AuditDatapoints.count({
-                where: {
-                    audit_id: id,
-                    is_applicable: true,
-                    status: 'pending',
-                },
-            });
-            const totalApplicableDPs = await AuditDatapoints.count({
-                where: { audit_id: id, is_applicable: true },
-            });
-            if (totalApplicableDPs === 0 || pendingDPs > 0) {
-                return res.status(400).json({
-                    error: 'All applicable datapoints must be completed or validated before closing',
+        if (audit.state !== 'Evaluated') {
+            if (audit.framework_version_id) {
+                const totalDPs = await AuditDatapoints.count({ where: { audit_id: id } });
+                const notValidatedDPs = await AuditDatapoints.count({
+                    where: { audit_id: id, status: { [Op.ne]: 'validated' } },
                 });
+                if (totalDPs === 0 || notValidatedDPs > 0) {
+                    return res.status(400).json({ error: 'All datapoints must be validated before closing' });
+                }
+            } else {
+                return res.status(400).json({ error: 'Only evaluated audits can be closed' });
             }
-        } else {
-            return res.status(400).json({ error: 'Only evaluated audits can be closed' });
         }
         await Audits.update(
             { state: 'Closed' },
             { where: { id } }
         );
-
         res.status(200).json({ message: 'Audit closed successfully' });
-
         const user = await Users.findOne({ where: { id: audit.auditor }});
         await EmailService.sendAuditCloseNotification(user.email, id, audit.name);
-
     } catch (error) {
         console.error('Error closing audit:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 }
 

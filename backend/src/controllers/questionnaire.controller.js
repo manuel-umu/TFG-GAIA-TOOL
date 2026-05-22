@@ -4,7 +4,6 @@ const Standard = require('../models/standard.model.js');
 const DisclosureRequirement = require('../models/disclosure_requirement.model.js');
 const DataPoint = require('../models/data_point.model.js');
 const AuditDatapoints = require('../models/audit_data_points.model.js');
-const { Op } = require('sequelize');
 
 // GET /questionnaire/:id
 // Devuelve el cuestionario filtrado: solo los estandares materiales
@@ -26,28 +25,28 @@ async function get_questionnaire(req, res) {
         const materialStandardIds = materialAssessments.map(a => a.standard_id);
 
         const standards = await Standard.findAll({
-            where: { id: { [Op.in]: materialStandardIds } },
+            where: { id: materialStandardIds },
             order: [['sort_order', 'ASC']],
         });
 
         // Disclosure Requirements del estandar
         const disclosureRequirements = await DisclosureRequirement.findAll({
-            where: { standard_id: { [Op.in]: materialStandardIds } },
+            where: { standard_id: materialStandardIds },
             order: [['sort_order', 'ASC']],
         });
 
         const drIds = disclosureRequirements.map(dr => dr.id);
-        
+
         // DataPoints de cada DR
         const dataPoints = await DataPoint.findAll({
-            where: { disclosure_requirement_id: { [Op.in]: drIds } },
+            where: { disclosure_requirement_id: drIds },
             order: [['id', 'ASC']],
         });
 
         const dpIds = dataPoints.map(dp => dp.id);
 
         const auditDatapoints = await AuditDatapoints.findAll({
-            where: { audit_id: id, data_point_id: { [Op.in]: dpIds } },
+            where: { audit_id: id, data_point_id: dpIds },
         });
 
         const responseMap = new Map(auditDatapoints.map(r => [r.data_point_id, r]));
@@ -57,8 +56,7 @@ async function get_questionnaire(req, res) {
             if (!dpsByDrId.has(dp.disclosure_requirement_id)) {
                 dpsByDrId.set(dp.disclosure_requirement_id, []);
             }
-            // Respuesta previa si existe
-            const saved = responseMap.get(dp.id) || null;
+            const saved = responseMap.get(dp.id);
             dpsByDrId.get(dp.disclosure_requirement_id).push({
                 id: dp.id,
                 official_id: dp.official_id,
@@ -104,10 +102,10 @@ async function get_questionnaire(req, res) {
             disclosure_requirements: drsByStandardId.get(s.id) || [],
         }));
 
-        return res.status(200).json({ audit_id: parseInt(id, 10), standards: result });
+        res.status(200).json({ audit_id: parseInt(id, 10), standards: result });
     } catch (error) {
         console.error('Error fetching questionnaire:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 }
 
@@ -139,11 +137,43 @@ async function save_questionnaire(req, res) {
             updateOnDuplicate: ['value_text', 'value_numeric', 'is_applicable', 'evidence_reference', 'status', 'updated_at', 'updated_by'],
         });
 
-        return res.status(200).json({ message: 'Questionnaire saved successfully' });
+        res.status(200).json({ message: 'Questionnaire saved successfully' });
     } catch (error) {
         console.error('Error saving questionnaire:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ error: 'Internal server error' });
     }
 }
 
-module.exports = { get_questionnaire, save_questionnaire };
+async function validate_questionnaire(req, res) {
+    const { id } = req.params;
+    const { validated_ids } = req.body;
+
+    try {
+        const audit = await Audit.findOne({ where: { id } });
+        if (!audit) {
+            return res.status(404).json({ error: 'Audit not found' });
+        }
+
+        const now = new Date();
+
+        await AuditDatapoints.update(
+            { status: 'completed', updated_at: now, updated_by: req.user.id },
+            { where: { audit_id: id, status: 'validated' } }
+        );
+
+        if (validated_ids.length > 0) {
+            await AuditDatapoints.update(
+                { status: 'validated', updated_at: now, updated_by: req.user.id },
+                { where: { audit_id: id, data_point_id: validated_ids, status: 'completed' } }
+            );
+        }
+
+        res.status(200).json({ message: 'Validation saved successfully' });
+
+    } catch (error) {
+        console.error('Error validating questionnaire:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+module.exports = { get_questionnaire, save_questionnaire, validate_questionnaire };
