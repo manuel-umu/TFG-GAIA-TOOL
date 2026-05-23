@@ -282,19 +282,19 @@ export default {
           event: 'materiality',
           icon: 'mdi mdi-clipboard-check-outline',
           tooltip: 'Double Materiality',
-          disabledCondition: (row) => (row.state === 'Closed' || row.framework_code === null),
+          disabledCondition: (row) => (!row.framework_code || row.state === 'Closed'),
         },
         {
           event: 'questionnaire',
           icon: 'mdi mdi-form-textbox',
           tooltip: 'ESRS Questionnaire',
-          disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || !row.materiality_complete),
+          disabledCondition: (row) => (!row.framework_code || row.state === 'Closed' || !row.materiality_complete),
         },
         {
           event: 'evaluate',
           icon: 'mdi mdi-file-document-edit',
           tooltip: 'Evaluate',
-          disabledCondition: (row) => (row.state === 'Closed' || row.state === 'Not started' || row.state === 'Not evaluated'),
+          disabledCondition: (row) => (row.framework_code || row.state === 'Closed' || row.state === 'Not started'),
         },
       ]
     },       

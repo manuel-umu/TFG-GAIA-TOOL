@@ -11,16 +11,6 @@ Indicator.init(
       primaryKey: true,
       allowNull: false,
     },
-    data_point_id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: true,
-      references: {
-        model: DataPoint,
-        key: 'id',
-      },
-      onDelete: 'SET NULL',
-      onUpdate: 'CASCADE',
-    },
     name: {
       type: DataTypes.STRING(200),
       allowNull: false,

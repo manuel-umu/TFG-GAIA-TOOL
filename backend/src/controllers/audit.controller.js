@@ -233,6 +233,14 @@ async function create_audit(req, res) {
             });
         }
 
+        if (framework_version_id && processes_ids.length > 0) {
+            return res.status(400).json({
+                errors: {
+                    processes: 'CSRD audits (with a framework version) cannot include business processes'
+                }
+            });
+        }
+
         for (const proc of processes_ids) {
             const processExists = await Process.findOne({ where: { id: proc } });
             if (!processExists) {
@@ -333,6 +341,14 @@ async function update_audit(req, res) {
         if (!existingOrganization) {
             return res.status(404).json({
                 message: 'Organization not found',
+            });
+        }
+
+        if (framework_version_id && processes.length > 0) {
+            return res.status(400).json({
+                errors: {
+                    processes: 'CSRD audits (with a framework version) cannot include business processes'
+                }
             });
         }
 

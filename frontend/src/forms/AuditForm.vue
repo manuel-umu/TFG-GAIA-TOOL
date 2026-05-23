@@ -142,29 +142,47 @@
         <div style="display: flex; gap: 16px;">
           <b-field label="Framework" for="framework" style="flex: 1;">
             <b-select
+              v-if="frameworks.length > 0"
               id="framework"
               v-model="framework_id"
               placeholder="Select a framework"
               expanded
             >
+              <option v-if="framework_id !== null" :value="null">— Clear selection —</option>
               <option v-for="f in frameworks" :key="f.id" :value="f.id">
                 {{ f.code }} — {{ f.name }}
               </option>
             </b-select>
+            <p v-else class="has-text-grey is-size-7 mt-1">
+              <b-icon icon="alert-circle-outline" size="is-small" />
+              No active frameworks available.
+            </p>
           </b-field>
 
-          <b-field label="Framework Version" for="framework_version" style="flex: 1;">
+          <b-field
+            label="Framework Version"
+            for="framework_version"
+            style="flex: 1;"
+            :type="messageFrameworkVersion != '' ? 'is-danger' : ''"
+            :message="messageFrameworkVersion"
+          >
             <b-select
+              v-if="!framework_id || frameworkVersions.length > 0"
               id="framework_version"
               v-model="framework_version_id"
               placeholder="Select a version"
               :disabled="!framework_id"
               expanded
             >
+              <option v-if="framework_version_id !== null" :value="null">— Clear selection —</option>
               <option v-for="v in frameworkVersions" :key="v.id" :value="v.id">
                 {{ v.version_label }}
               </option>
             </b-select>
+            <p v-else class="has-text-grey is-size-7 mt-1">
+              <b-icon icon="alert-circle-outline" size="is-small" />
+              No active versions for this framework.
+            </p>
           </b-field>
         </div>
 
@@ -338,8 +356,9 @@ export default {
       messageOrganization: '', 
       messageProcStrategic: '',  // Mensaje para procesos estratégicos
       messageProcKey: '',       // Mensaje para procesos clave
-      messageProcSupport: '', 
-      messageProcesses: '',  
+      messageProcSupport: '',
+      messageProcesses: '',
+      messageFrameworkVersion: '',
 
       allUsers: [],
       users: [], // Usuarios posibles auditores
@@ -412,6 +431,7 @@ export default {
             this.messageProcStrategic = '';
             this.messageProcSupport = '';
             this.messageProcesses = '';
+            this.messageFrameworkVersion = '';
 
             this.reporting_year = null;
             this.reporting_year_text = '';
@@ -430,12 +450,16 @@ export default {
     },
     framework_id: function(newVal) {
       this.framework_version_id = null;
+      this.messageFrameworkVersion = '';
       if (newVal) {
         const found = this.frameworks.find(f => f.id === newVal);
-        this.frameworkVersions = found ? found.versions : [];
+        this.frameworkVersions = found ? found.versions.filter(v => v.is_active) : [];
       } else {
         this.frameworkVersions = [];
       }
+    },
+    framework_version_id: function(newVal) {
+      if (newVal) this.messageFrameworkVersion = '';
     },
   },
   computed: {
@@ -489,7 +513,7 @@ export default {
     getFrameworks: async function() {
       try {
         const response = await axiosInstance.get('/frameworks');
-        this.frameworks = response.data || [];
+        this.frameworks = (response.data || []).filter(f => f.is_active);
       } catch (error) {
         console.log(error);
       }
@@ -605,7 +629,7 @@ export default {
           );
           if (parentFramework) {
             this.framework_id = parentFramework.id;
-            this.frameworkVersions = parentFramework.versions;
+            this.frameworkVersions = parentFramework.versions.filter(v => v.is_active);
           }
         }
         this.organization = audit.organization;
@@ -646,9 +670,21 @@ export default {
       }
     },
     addAudit: async function() {
+      this.messageFrameworkVersion = '';
+      this.messageProcesses = '';
+
       const count = this.selectedStrProc.length + this.selectedKeyProc.length + this.selectedSuppProc.length;
-      if (count == 0){
+      if (this.framework_id && !this.framework_version_id) {
+        this.messageFrameworkVersion = 'Please select a framework version.';
+        return;
+      }
+      if (this.framework_version_id && count > 0) {
+        this.messageProcesses = 'CSRD audits (with a framework version) cannot include business processes.';
+        return;
+      }
+      if (!this.framework_version_id && count == 0){
         this.messageProcesses = 'Select at least one process to audit.';
+        return;
       }
 
       try {
@@ -691,6 +727,19 @@ export default {
       }
     },
     editAudit: async function() {
+      this.messageFrameworkVersion = '';
+      this.messageProcesses = '';
+
+      const count = this.selectedStrProc.length + this.selectedKeyProc.length + this.selectedSuppProc.length;
+      if (this.framework_id && !this.framework_version_id) {
+        this.messageFrameworkVersion = 'Please select a framework version.';
+        return;
+      }
+      if (this.framework_version_id && count > 0) {
+        this.messageProcesses = 'CSRD audits (with a framework version) cannot include business processes.';
+        return;
+      }
+
       try {
           this.isLoading = true;
           var selectedProcesses = this.selectedStrProc;

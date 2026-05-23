@@ -7,6 +7,9 @@ router.get('/frameworks', checkUser(), frameworkController.get_frameworks);
 router.get('/frameworks/versions/:versionId/standards', checkUser(), frameworkController.get_standards_by_version);
 router.get('/frameworks/versions/:versionId/standards/:standardId', checkUser(), frameworkController.get_standard_detail);
 
+router.patch('/frameworks/:frameworkId/active', checkUser('admin'), frameworkController.toggle_framework_active);
+router.patch('/frameworks/versions/:versionId/active', checkUser('admin'), frameworkController.toggle_version_active);
+
 router.post('/frameworks/upload/preview', checkUser(), frameworkController.preview_upload);
 router.post('/frameworks/upload/import/:token', checkUser(), frameworkController.confirm_import);
 
