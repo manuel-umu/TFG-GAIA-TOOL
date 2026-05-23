@@ -248,10 +248,21 @@ export default {
   transform: translateY(-.5em); 
 }
 
+.grid-item:last-child {
+  grid-column: 2;
+}
+
 @media only screen and (max-width: 1565px) {
   .grid-container {
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: auto auto auto;
+  }
+  .grid-item:last-child {
+    grid-column: 1 / span 2;
+    justify-self: center;
+  }
+  .grid-item:last-child .custome-card {
+    max-width: 50%;
   }
 }
 
@@ -259,6 +270,12 @@ export default {
   .grid-container {
     grid-template-columns: repeat(1, 1fr);
     grid-template-rows: auto auto auto auto;
+  }
+  .grid-item:last-child {
+    grid-column: auto;
+  }
+  .grid-item:last-child .custome-card {
+    max-width: none;
   }
 }
 
