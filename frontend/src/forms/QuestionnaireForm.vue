@@ -34,6 +34,9 @@
     </div>
 
     <div v-if="!isLoading && standards.length > 0">
+      <div v-if="totalRejected > 0" class="notification is-danger is-light">
+        {{ totalRejected }} datapoint{{ totalRejected === 1 ? '' : 's' }} need correction. Review the items marked in red and update them.
+      </div>
       <!-- Tabs verticales: una pestaña por estándar material -->
       <b-tabs
         v-model="activeStandardTab"
@@ -55,6 +58,14 @@
               class="tab-counter"
             >
               {{ standardProgress(standard).filled }} / {{ standardProgress(standard).total }}
+            </b-tag>
+            <b-tag
+              v-if="standardProgress(standard).rejected > 0"
+              type="is-danger is-light"
+              size="is-small"
+              class="tab-counter"
+            >
+              {{ standardProgress(standard).rejected }}
             </b-tag>
           </template>
 
@@ -92,6 +103,14 @@
               <div class="dp-header">
                 <div class="dp-title-row">
                   <span class="dp-name">{{ dp.name }}</span>
+                  <b-tag
+                    v-if="dp.response && dp.response.status === 'rejected'"
+                    type="is-danger"
+                    size="is-small"
+                    class="dp-tag"
+                  >
+                    Rejected
+                  </b-tag>
                   <b-tag
                     v-if="dp.is_voluntary"
                     type="is-info is-light"
@@ -361,16 +380,18 @@ export default {
     }
   },
   computed: {
-    // Devuelve { filled, total } para mostrar el contador en la pestaña
+    // Devuelve { filled, total, rejected } para mostrar el contador en la pestaña
     standardProgress() {
       return (standard) => {
         let total = 0;
         let filled = 0;
-        if (!standard.disclosure_requirements) return { filled: 0, total: 0 };
+        let rejected = 0;
+        if (!standard.disclosure_requirements) return { filled: 0, total: 0, rejected: 0 };
         standard.disclosure_requirements.forEach((dr) => {
           if (!dr.data_points) return;
           dr.data_points.forEach((dp) => {
             total++;
+            if (dp.response && dp.response.status === 'rejected') rejected++;
             const entry = this.localData[dp.id];
             if (!entry) return;
             if (!entry.is_applicable) {
@@ -381,8 +402,19 @@ export default {
             if (hasText) filled++;
           });
         });
-        return { filled, total };
+        return { filled, total, rejected };
       };
+    },
+    totalRejected() {
+      let count = 0;
+      this.standards.forEach((std) => {
+        std.disclosure_requirements.forEach((dr) => {
+          dr.data_points.forEach((dp) => {
+            if (dp.response && dp.response.status === 'rejected') count++;
+          });
+        });
+      });
+      return count;
     },
   },
   methods: {

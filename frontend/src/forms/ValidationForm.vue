@@ -86,20 +86,32 @@
               v-for="dp in dr.data_points"
               :key="dp.id"
               class="dp-block"
-              :class="{ 'dp-validated': validated[dp.id] }"
+              :class="{
+                'dp-validated': dpStatus[dp.id] === 'validated',
+                'dp-rejected': dpStatus[dp.id] === 'rejected',
+              }"
             >
               <div class="dp-title-row">
                 <span class="dp-name">{{ dp.name }}</span>
                 <span class="dp-official-id">{{ dp.official_id }}</span>
-                <b-button
-                  :type="validated[dp.id] ? 'is-success' : 'is-light'"
-                  size="is-small"
-                  :icon-left="validated[dp.id] ? 'check-circle' : 'circle-outline'"
-                  class="validate-btn"
-                  @click="toggleValidate(dp.id)"
-                >
-                  {{ validated[dp.id] ? 'Validated' : 'Validate' }}
-                </b-button>
+                <div class="dp-actions">
+                  <b-button
+                    :type="dpStatus[dp.id] === 'validated' ? 'is-success' : 'is-light'"
+                    size="is-small"
+                    icon-left="check"
+                    @click="toggleValidate(dp.id)"
+                  >
+                    {{ dpStatus[dp.id] === 'validated' ? 'Validated' : 'Validate' }}
+                  </b-button>
+                  <b-button
+                    :type="dpStatus[dp.id] === 'rejected' ? 'is-danger' : 'is-light'"
+                    size="is-small"
+                    icon-left="close"
+                    @click="toggleReject(dp.id)"
+                  >
+                    {{ dpStatus[dp.id] === 'rejected' ? 'Rejected' : 'Reject' }}
+                  </b-button>
+                </div>
               </div>
               <div class="dp-value">
                 <span class="dp-value-label">Value:</span>
@@ -133,7 +145,7 @@ export default {
       isSaving: false,
       isClosing: false,
       standards: [],
-      validated: {},
+      dpStatus: {},
       activeStandardTab: 0,
     };
   },
@@ -150,7 +162,7 @@ export default {
         standard.disclosure_requirements.forEach((dr) => {
           dr.data_points.forEach((dp) => {
             total++;
-            if (this.validated[dp.id]) validated++;
+            if (this.dpStatus[dp.id] === 'validated') validated++;
           });
         });
         return { validated, total };
@@ -163,7 +175,7 @@ export default {
         std.disclosure_requirements.forEach((dr) => {
           dr.data_points.forEach((dp) => {
             total++;
-            if (this.validated[dp.id]) validated++;
+            if (this.dpStatus[dp.id] === 'validated') validated++;
           });
         });
       });
@@ -177,19 +189,21 @@ export default {
         const response = await axiosInstance.get(`/audits/${this.id_audit}/questionnaire`);
         const standards = response.data.standards || [];
 
-        const validated = {};
+        const dpStatus = {};
         standards.forEach((std) => {
           std.disclosure_requirements.forEach((dr) => {
             dr.data_points = dr.data_points.filter((dp) => dp.response != null);
             dr.data_points.forEach((dp) => {
-              validated[dp.id] = dp.response.status === 'validated';
+              if (dp.response.status === 'validated' || dp.response.status === 'rejected') {
+                dpStatus[dp.id] = dp.response.status;
+              }
             });
           });
           std.disclosure_requirements = std.disclosure_requirements.filter((dr) => dr.data_points.length > 0);
         });
 
         this.standards = standards;
-        this.validated = validated;
+        this.dpStatus = dpStatus;
       } catch (error) {
         this.$buefy.snackbar.open({
           message: 'Error loading questionnaire. Please try again.',
@@ -214,31 +228,43 @@ export default {
     },
 
     toggleValidate: function (dpId) {
-      this.$set(this.validated, dpId, !this.validated[dpId]);
+      if (this.dpStatus[dpId] === 'validated') {
+        this.$set(this.dpStatus, dpId, null);
+      } else {
+        this.$set(this.dpStatus, dpId, 'validated');
+      }
+    },
+
+    toggleReject: function (dpId) {
+      if (this.dpStatus[dpId] === 'rejected') {
+        this.$set(this.dpStatus, dpId, null);
+      } else {
+        this.$set(this.dpStatus, dpId, 'rejected');
+      }
     },
 
     validateAll: function (standard) {
       standard.disclosure_requirements.forEach((dr) => {
         dr.data_points.forEach((dp) => {
-          this.$set(this.validated, dp.id, true);
+          this.$set(this.dpStatus, dp.id, 'validated');
         });
       });
     },
 
-    buildValidatedIds: function () {
-      const ids = [];
-      Object.keys(this.validated).forEach((id) => {
-        if (this.validated[id]) ids.push(Number(id));
+    buildPayload: function () {
+      const validated_ids = [];
+      const rejected_ids = [];
+      Object.keys(this.dpStatus).forEach((id) => {
+        if (this.dpStatus[id] === 'validated') validated_ids.push(Number(id));
+        else if (this.dpStatus[id] === 'rejected') rejected_ids.push(Number(id));
       });
-      return ids;
+      return { validated_ids, rejected_ids };
     },
 
     save: async function () {
       try {
         this.isSaving = true;
-        await axiosInstance.post(`/audits/${this.id_audit}/questionnaire/validate`, {
-          validated_ids: this.buildValidatedIds(),
-        });
+        await axiosInstance.post(`/audits/${this.id_audit}/questionnaire/validate`, this.buildPayload());
         this.$buefy.snackbar.open({
           message: 'Validation saved successfully.',
           type: 'is-success',
@@ -272,9 +298,7 @@ export default {
     closeAudit: async function () {
       try {
         this.isClosing = true;
-        await axiosInstance.post(`/audits/${this.id_audit}/questionnaire/validate`, {
-          validated_ids: this.buildValidatedIds(),
-        });
+        await axiosInstance.post(`/audits/${this.id_audit}/questionnaire/validate`, this.buildPayload());
         await axiosInstance.post(`/audits/${this.id_audit}/close`);
         this.$buefy.snackbar.open({
           message: 'Audit closed successfully.',
@@ -428,6 +452,11 @@ export default {
   background: #f4f7ed;
 }
 
+.dp-block.dp-rejected {
+  border-color: #d04949;
+  background: #fbe9e9;
+}
+
 .dp-title-row {
   display: flex;
   align-items: center;
@@ -451,8 +480,10 @@ export default {
   border-radius: 3px;
 }
 
-.validate-btn {
+.dp-actions {
   margin-left: auto;
+  display: flex;
+  gap: 6px;
   flex-shrink: 0;
 }
 

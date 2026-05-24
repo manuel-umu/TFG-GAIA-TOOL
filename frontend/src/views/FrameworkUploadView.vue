@@ -150,12 +150,11 @@
         <div class="action-row mt-5">
           <b-button icon-left="arrow-left" @click="step = 1">Back</b-button>
           <b-button
-            type="is-success"
+            class="ml-3 btn-app-green"
             icon-left="database-import"
             :loading="isImporting"
             :disabled="preview.version_conflict"
             @click="doImport"
-            class="ml-3"
           >
             Confirm Import
           </b-button>
@@ -175,9 +174,6 @@ const CSRD_DEFAULTS = {
   fw_name: 'Corporate Sustainability Reporting Directive',
   fw_issuing_body: 'European Union',
   fw_description: 'EU Directive 2022/2464 requiring large companies to report on sustainability matters',
-  fv_code: 'ESRS-SET1-2024',
-  fv_label: 'ESRS Set 1 - 2024',
-  fv_effective_date: new Date('2024-01-01'),
 };
 
 export default {
@@ -307,14 +303,12 @@ export default {
   padding: 28px 24px;
   width: 100%;
 }
-
 .upload-header {
   display: flex;
   align-items: center;
   gap: 16px;
   margin-bottom: 28px;
 }
-
 .button-back {
   color: #adb987;
   border-radius: 30px;
@@ -322,14 +316,12 @@ export default {
   border: none;
   box-shadow: none;
 }
-
 .steps-bar {
   display: flex;
   align-items: center;
   margin-bottom: 32px;
   gap: 0;
 }
-
 .step-item {
   display: flex;
   align-items: center;
@@ -340,7 +332,6 @@ export default {
   &.is-active {
     opacity: 1;
   }
-
   .step-marker {
     width: 32px;
     height: 32px;
@@ -353,21 +344,18 @@ export default {
     font-weight: 700;
     font-size: 0.9rem;
   }
-
   .step-details {
     font-weight: 600;
     font-size: 0.9rem;
     color: #363636;
   }
 }
-
 .step-divider {
   flex: 1;
   height: 2px;
   background: #d6dcc3;
   margin: 0 16px;
 }
-
 .step-content {
   .box-title-row {
     display: flex;
@@ -376,14 +364,25 @@ export default {
     margin-bottom: 16px;
   }
 }
-
 .totals-row {
   display: flex;
   align-items: center;
 }
-
 .action-row {
   display: flex;
   align-items: center;
+}
+</style>
+<style>
+.btn-app-green {
+  background-color: #adb987 !important;
+  border-color: #adb987 !important;
+  color: #fff !important;
+}
+.btn-app-green:hover,
+.btn-app-green:focus {
+  background-color: #9aa876 !important;
+  border-color: #9aa876 !important;
+  color: #fff !important;
 }
 </style>
