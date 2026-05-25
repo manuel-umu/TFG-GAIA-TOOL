@@ -749,7 +749,7 @@ async function addAuditDetails(audits) {
                 const fv = await FrameworkVersion.findOne({ where: { id: aud.framework_version_id } });
                 if (fv) {
                     const fw = await Framework.findOne({ where: { id: fv.framework_id } });
-                    aud.dataValues.framework_code = fw ? fw.code : null;
+                    aud.dataValues.framework_code = fw.code;
                 } else {
                     aud.dataValues.framework_code = null;
                 }

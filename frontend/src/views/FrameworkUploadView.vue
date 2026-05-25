@@ -167,7 +167,6 @@
 
 <script>
 import axiosInstance from '@/services/axiosInstance';
-import { parseEsrsExcel } from '@/services/esrsExcelParser.js';
 
 const CSRD_DEFAULTS = {
   fw_code: 'CSRD',
@@ -214,48 +213,21 @@ export default {
     async doPreview() {
       this.isParsing = true;
       try {
-        // 1. Leer el archivo como ArrayBuffer (igual que hace IndicatorView)
-        const arrayBuffer = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = e => resolve(e.target.result);
-          reader.onerror = reject;
-          reader.readAsArrayBuffer(this.form.file);
+        const formData = new FormData();
+        formData.append('file', this.form.file);
+        formData.append('fw_code', this.form.fw_code);
+        formData.append('fw_name', this.form.fw_name);
+        formData.append('fw_issuing_body', this.form.fw_issuing_body || '');
+        formData.append('fw_description', this.form.fw_description || '');
+        formData.append('fv_code', this.form.fv_code);
+        formData.append('fv_label', this.form.fv_label);
+        if (this.form.fv_effective_date) {
+          formData.append('fv_effective_date', this.form.fv_effective_date.toISOString().split('T')[0]);
+        }
+
+        const res = await axiosInstance.post('/frameworks/upload/preview', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
-
-        // 2. Parsear en cliente
-        let parsed;
-        try {
-          parsed = parseEsrsExcel(arrayBuffer);
-        } catch (e) {
-          this.$buefy.snackbar.open({ message: 'Could not parse Excel file: ' + e.message, type: 'is-danger', duration: 7000 });
-          return;
-        }
-
-        if (!parsed.standards || parsed.standards.length === 0) {
-          this.$buefy.snackbar.open({ message: 'No standards found. Check the file format (EFRAG IG3).', type: 'is-danger', duration: 7000 });
-          return;
-        }
-
-        // 3. Enviar JSON al backend
-        const payload = {
-          framework: {
-            code: this.form.fw_code,
-            name: this.form.fw_name,
-            issuing_body: this.form.fw_issuing_body || null,
-            description: this.form.fw_description || null,
-          },
-          frameworkVersion: {
-            version_code: this.form.fv_code,
-            version_label: this.form.fv_label,
-            effective_date: this.form.fv_effective_date
-              ? this.form.fv_effective_date.toISOString().split('T')[0]
-              : null,
-            source_file: this.form.file.name,
-          },
-          standards: parsed.standards,
-        };
-
-        const res = await axiosInstance.post('/frameworks/upload/preview', payload);
         this.preview = res.data;
         this.step = 2;
       } catch (e) {

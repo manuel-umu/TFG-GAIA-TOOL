@@ -116,13 +116,13 @@
         <!-- Formulario -->
         <section v-if="aiStep === 1" class="modal-card-body">
           <p class="has-text-grey" style="margin-bottom: 16px; font-size: 0.9rem;">
-            Provide basic information about the company for the AI to suggest which ESRS standards are material.
+            Provide the annual revenue and a short activity description.
           </p>
-          <b-field label="Sector *" label-position="on-border">
-            <b-input v-model="aiForm.sector" placeholder="Ej: Manufacturing, Technology, Agriculture..." />
+          <b-field label="Sector *" label-position="on-border" message="From organization">
+            <b-input v-model="aiForm.sector" placeholder="From organization" disabled />
           </b-field>
-          <b-field label="Number of employees *" label-position="on-border">
-            <b-input v-model="aiForm.employees" type="number" min="1" placeholder="Ej: 250" />
+          <b-field label="Number of employees *" label-position="on-border" message="From organization">
+            <b-input v-model="aiForm.employees" type="text" placeholder="From organization" disabled />
           </b-field>
           <b-field label="Anual revenue (M€)" label-position="on-border">
             <b-input v-model="aiForm.revenue" type="number" min="0" step="0.1" placeholder="Ej: 45.5" />
@@ -207,6 +207,7 @@ export default {
       isLoading: false,
       isSaving: false,
       standards: [],
+      organization: null,
       localData: {},
       aiModalActive: false,
       isAiLoading: false,
@@ -214,7 +215,7 @@ export default {
       aiStep: 1,
       aiForm: {
         sector: '',
-        employees: null,
+        employees: '',
         revenue: null,
         description: '',
       },
@@ -244,7 +245,8 @@ export default {
       try {
         this.isLoading = true;
         const response = await axiosInstance.get(`/audits/${this.id_audit}/materiality`);
-        this.standards = response.data;
+        this.standards = response.data.standards || [];
+        this.organization = response.data.organization || null;
         const data = {};
         this.standards.forEach(std => {
           data[std.id] = {
@@ -316,19 +318,28 @@ export default {
     openAiModal: function() {
       this.aiStep = 1;  // 1-Formulario, 2-Resultados
       this.aiSuggestions = [];
+      // Autorelleno desde la organizacion: sector y rango de empleados
+      this.aiForm.sector = this.organization ? (this.organization.sector || '') : '';
+      this.aiForm.employees = this.organization ? (this.organization.rangeEmployees || '') : '';
+      this.aiForm.revenue = null;
+      this.aiForm.description = '';
       this.aiModalActive = true;
     },
     runAiSuggestion: async function() {
-      if (!this.aiForm.sector || this.aiForm.employees == null) {
-        this.$buefy.snackbar.open({ message: 'Sector y empleados son obligatorios.', type: 'is-danger', duration: 4000 });
+      if (!this.aiForm.sector || !this.aiForm.employees) {
+        this.$buefy.snackbar.open({
+          message: 'Sector y número de empleados deben estar definidos en la organización.',
+          type: 'is-danger',
+          duration: 5000,
+        });
         return;
       }
       try {
         this.isAiLoading = true;
         const payload = {
           sector: this.aiForm.sector,
-          employees: Number(this.aiForm.employees),
-          revenue: this.aiForm.revenue != null ? Number(this.aiForm.revenue) : undefined,
+          employees: this.aiForm.employees,                                              // string (puede ser rango "101-250")
+          revenue: this.aiForm.revenue != null && this.aiForm.revenue !== '' ? Number(this.aiForm.revenue) : undefined,
           description: this.aiForm.description || undefined,
         };
         const response = await axiosInstance.post(`/audits/${this.id_audit}/ai/materiality`, payload);  // backend

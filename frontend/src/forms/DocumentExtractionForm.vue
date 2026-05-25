@@ -237,7 +237,7 @@ export default {
     loadMaterialStandards: async function() {
       try {
         const response = await axiosInstance.get(`/audits/${this.id_audit}/materiality`);
-        const all = response.data || [];
+        const all = response.data.standards;
         this.materialStandards = all.filter(
           item => item.assessment && item.assessment.is_material === true
         );

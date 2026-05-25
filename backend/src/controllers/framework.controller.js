@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const { Op } = require("sequelize");
 const sequelize = require("../config/sequelize.js");
 const Framework = require("../models/framework.model.js");
@@ -5,6 +6,12 @@ const FrameworkVersion = require("../models/framework_version.model.js");
 const Standard = require("../models/standard.model.js");
 const DisclosureRequirement = require("../models/disclosure_requirement.model.js");
 const DataPoint = require("../models/data_point.model.js");
+const ExcelParser = require("../services/excelParser.js");
+
+const XLSX_MIMETYPE =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+const previewStore = new Map();
 
 async function get_frameworks(req, res) {
   const isAdmin =
@@ -160,26 +167,52 @@ async function get_standard_detail(req, res) {
   }
 }
 
-const previewStore = new Map();
-
 async function preview_upload(req, res) {
-  try {
-    const { framework: fwData, frameworkVersion: fvData, standards } = req.body;
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+  if (req.file.mimetype !== XLSX_MIMETYPE) {
+    return res.status(400).json({ error: "Only .xlsx files are allowed" });
+  }
 
-    if (
-      !fwData?.code ||
-      !fwData?.name ||
-      !fvData?.version_code ||
-      !fvData?.version_label
-    ) {
+  const fwData = {
+    code: req.body.fw_code,
+    name: req.body.fw_name,
+    description: req.body.fw_description || null,
+    issuing_body: req.body.fw_issuing_body || null,
+  };
+  const fvData = {
+    version_code: req.body.fv_code,
+    version_label: req.body.fv_label,
+    effective_date: req.body.fv_effective_date || null,
+    source_file: req.file.originalname,
+  };
+
+  if (
+    !fwData.code ||
+    !fwData.name ||
+    !fvData.version_code ||
+    !fvData.version_label
+  ) {
+    return res.status(400).json({ error: "Missing required metadata fields" });
+  }
+
+  try {
+    let parsed;
+    try {
+      parsed = ExcelParser.parseFramework(req.file.buffer);
+    } catch (parseErr) {
+      console.error("Excel parse error:", parseErr.message);
       return res
         .status(400)
-        .json({ error: "Missing required metadata fields" });
+        .json({ error: "Could not parse Excel file: " + parseErr.message });
     }
+
+    const { standards } = parsed;
     if (!Array.isArray(standards) || standards.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "No standards found in the parsed data" });
+      return res.status(400).json({
+        error: "No standards found. Check the file format (EFRAG IG3).",
+      });
     }
 
     const existingFw = await Framework.findOne({
@@ -196,22 +229,31 @@ async function preview_upload(req, res) {
       versionConflict = !!existingFv;
     }
 
-    const summary = standards.map((s) => ({
-      code: s.code,
-      name: s.name,
-      category: s.category,
-      is_mandatory: s.is_mandatory,
-      dr_count: s.disclosureRequirements?.length || 0,
-      datapoint_count: (s.disclosureRequirements || []).reduce(
-        (sum, dr) => sum + (dr.dataPoints?.length || 0),
-        0,
-      ),
-    }));
+    const summary = [];
+    let total_drs = 0;
+    let total_dps = 0;
 
-    const total_drs = summary.reduce((s, r) => s + r.dr_count, 0);
-    const total_dps = summary.reduce((s, r) => s + r.datapoint_count, 0);
+    for (const s of standards) {
+      const drs = s.disclosureRequirements || [];
+      let dpCount = 0;
+      for (const dr of drs) {
+        dpCount += (dr.dataPoints || []).length;
+      }
 
-    const token = require("crypto").randomUUID();
+      summary.push({
+        code: s.code,
+        name: s.name,
+        category: s.category,
+        is_mandatory: s.is_mandatory,
+        dr_count: drs.length,
+        datapoint_count: dpCount,
+      });
+
+      total_drs += drs.length;
+      total_dps += dpCount;
+    }
+
+    const token = crypto.randomUUID();
     previewStore.set(token, {
       framework: fwData,
       frameworkVersion: fvData,
@@ -223,15 +265,13 @@ async function preview_upload(req, res) {
       if (Date.now() - v.createdAt > 30 * 60 * 1000) previewStore.delete(k);
     }
 
-    res
-      .status(200)
-      .json({
-        token,
-        version_conflict: versionConflict,
-        summary,
-        total_drs,
-        total_dps,
-      });
+    res.status(200).json({
+      token,
+      version_conflict: versionConflict,
+      summary,
+      total_drs,
+      total_dps,
+    });
   } catch (error) {
     console.error("Error in preview_upload:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -242,12 +282,10 @@ async function confirm_import(req, res) {
   const { token } = req.params;
   const stored = previewStore.get(token);
   if (!stored) {
-    return res
-      .status(404)
-      .json({
-        error:
-          "Preview token not found or expired. Please upload the file again.",
-      });
+    return res.status(404).json({
+      error:
+        "Preview token not found or expired. Please upload the file again.",
+    });
   }
 
   const {
@@ -293,6 +331,7 @@ async function confirm_import(req, res) {
         },
         defaults: {
           name: standardData.name,
+          description: standardData.description,
           category: standardData.category,
           is_mandatory: standardData.is_mandatory,
           sort_order: standardData.sort_order,
