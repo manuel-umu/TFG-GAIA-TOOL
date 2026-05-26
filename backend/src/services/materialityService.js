@@ -5,9 +5,10 @@
 const OpenAI = require('openai');
 const client = new OpenAI({
   baseURL: process.env.URL_API,
-  apiKey: process.env.API_KEY, 
+  apiKey: process.env.API_KEY,
 });
-const MAX_RESPONSE_TOKENS = 3000; 
+const LLM_MODEL = process.env.LLM_MODEL || 'gpt-oss';
+const MAX_RESPONSE_TOKENS = 3000;
 const SYSTEM_PROMPT = `Eres un auditor senior experto en sostenibilidad certificado bajo los estándares CSRD (Corporate Sustainability Reporting Directive, EU 2022/2464) y los ESRS (European Sustainability Reporting Standards) elaborados por EFRAG.
 
 ## Tu misión
@@ -92,7 +93,7 @@ async function suggestMateriality({ sector, employees, revenue, description }) {
                 { "role": "system", "content": SYSTEM_PROMPT },
                 { "role": "user", "content": userContent }
             ],
-            model: "gpt-oss",
+            model: LLM_MODEL,
             temperature: 0.2,
             max_tokens: MAX_RESPONSE_TOKENS,
         });

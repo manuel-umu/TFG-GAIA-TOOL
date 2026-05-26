@@ -487,9 +487,27 @@ export default {
       const centerX = pageWidth / 2;
 
       // --- PORTADA ---
-      if (data.organization.logo_url) {
+      const logoUrl = data.organization.logo_url;
+      let logoFormat = null;
+      if (logoUrl) {
+        if (logoUrl.startsWith("data:image/png")) logoFormat = "PNG";
+        else if (logoUrl.startsWith("data:image/jpeg")) logoFormat = "JPEG";
+        else if (logoUrl.startsWith("data:image/webp")) logoFormat = "WEBP";
+      }
+
+      let logoImg = null;
+      if (logoFormat) {
+        logoImg = await new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = logoUrl;
+        });
+      }
+
+      if (logoImg) {
         const w = pageWidth * 0.5;
-        doc.addImage(data.organization.logo_url, centerX - w / 2, 30, w, 200);
+        doc.addImage(logoImg, logoFormat, centerX - w / 2, 30, w, 200);
       } else {
         doc.setFont("times", "bold");
         doc.setFontSize(36);

@@ -73,6 +73,7 @@
       <div class="fw-content">
         <div class="fw-content-topbar">
           <b-button
+            v-if="isAdmin"
             type="is-primary"
             icon-left="upload"
             size="is-small"
@@ -331,7 +332,7 @@ export default {
   },
   computed: {
     isAdmin() {
-      return this.userRole === "admin" || this.userRole === "chief_auditor";
+      return this.userRole === "admin";
     },
     totalDRs() {
       return this.standards.reduce((sum, s) => sum + (s.dr_count || 0), 0);

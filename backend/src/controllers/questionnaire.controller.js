@@ -9,7 +9,7 @@ async function get_questionnaire(req, res) {
   const { id } = req.params;
   try {
     const audit = await Audit.findOne({ where: { id } });
-    if (!audit){
+    if (!audit) {
       return res.status(404).json({ error: "Audit not found" });
     }
 
@@ -184,7 +184,6 @@ async function validate_questionnaire(req, res) {
           where: {
             audit_id: id,
             data_point_id: validated_ids,
-            status: "completed",
           },
         },
       );
@@ -196,7 +195,6 @@ async function validate_questionnaire(req, res) {
           where: {
             audit_id: id,
             data_point_id: rejected_ids,
-            status: "completed",
           },
         },
       );

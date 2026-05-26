@@ -3,8 +3,9 @@
 const OpenAI = require('openai');
 const client = new OpenAI({
   baseURL: process.env.URL_API,
-  apiKey: process.env.API_KEY, 
+  apiKey: process.env.API_KEY,
 });
+const LLM_MODEL = process.env.LLM_MODEL || 'gpt-oss';
 const MAX_TOKENS = 4000;
 const TEMPERATURE = 0.1;
 const MAX_DOC_CHARS = 6000;
@@ -122,7 +123,7 @@ async function call({ messages }) {
     console.log("Calling model to extract data points...");
     const response = await client.chat.completions.create({
         messages,
-        model: 'gpt-oss',
+        model: LLM_MODEL,
         temperature: TEMPERATURE,
         max_tokens: MAX_TOKENS,
     });
