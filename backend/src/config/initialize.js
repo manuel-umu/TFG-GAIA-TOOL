@@ -19,7 +19,7 @@ async function initialize() {
         const Framework = require('../models/framework.model.js');
         const existingFramework = await Framework.findOne({ where: { code: 'CSRD' } });
         if (!existingFramework) {
-            //await seedCSRD.seed();
+            await seedCSRD.seed();
         } else {
             console.log('Framework CSRD ya existe, seed omitido.');
         }
